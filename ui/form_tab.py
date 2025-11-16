@@ -400,7 +400,7 @@ class FormTab(BaseTab):
         tree_scroll_x = ttk.Scrollbar(table_frame, orient="horizontal")
         
         # Treeview
-        columns = ("Nombre", "Apellido", "DNI", "Legajo", "Materia", "Profesor", "Turno", "Año")
+        columns = ("ID", "Nombre", "Apellido", "DNI", "Materia", "Profesor", "Turno", "Año")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
@@ -415,10 +415,10 @@ class FormTab(BaseTab):
         
         # Configurar columnas
         column_widths = {
+            "ID": 80,
             "Nombre": 120,
             "Apellido": 120,
             "DNI": 100,
-            "Legajo": 100,
             "Materia": 200,
             "Profesor": 150,
             "Turno": 80,
@@ -428,6 +428,10 @@ class FormTab(BaseTab):
         for col in columns:
             self.tree.heading(col, text=col)
             self.tree.column(col, width=column_widths[col], anchor="w")
+        
+        # Configurar tags para filas alternas
+        self.tree.tag_configure("evenrow", background="#FFFFFF")
+        self.tree.tag_configure("oddrow", background="#F8F9FA")
         
         # Pack
         self.tree.pack(side="left", fill="both", expand=True)
@@ -561,14 +565,18 @@ class FormTab(BaseTab):
             self.show_warning("Validación", "La comisión es obligatoria")
             return
         
-        # Construir registro PRIMERO (con legajo) para generar ID
-        registro_temp = {
-            "legajo": self.entries.get("legajo", ttk.Entry(self.form_container)).get().strip() or self.entries["dni"].get().strip(),
+        # Construir registro
+        import uuid
+        
+        registro = {
+            "id": str(uuid.uuid4()),
+            "fecha_inscripcion": datetime.now().isoformat(),
             "nombre": self.entries["nombre"].get().strip(),
             "apellido": self.entries["apellido"].get().strip(),
             "dni": self.entries["dni"].get().strip(),
             "fecha_nacimiento": self.entries.get("fecha_nacimiento", ttk.Entry(self.form_container)).get().strip(),
             "edad": self.entries.get("edad", ttk.Entry(self.form_container)).get().strip(),
+            "legajo": self.entries.get("legajo", ttk.Entry(self.form_container)).get().strip(),
             "direccion": self.entries.get("direccion", ttk.Entry(self.form_container)).get().strip(),
             "telefono": self.entries.get("telefono", ttk.Entry(self.form_container)).get().strip(),
             "email": self.entries.get("email", ttk.Entry(self.form_container)).get().strip(),
@@ -591,20 +599,10 @@ class FormTab(BaseTab):
             "en_lista_espera": "No"
         }
         
-        # Generar ID basado en el registro
-        nuevo_id = generar_id(registro_temp)
-        
-        # Agregar ID y fecha al registro
-        registro = {
-            "id": nuevo_id,
-            "fecha_inscripcion": datetime.now().isoformat(),
-            **registro_temp
-        }
-        
         # Guardar
         try:
             guardar_registro(registro)
-            self.show_info("Éxito", f"Inscripción guardada correctamente\nID: {nuevo_id}")
+            self.show_info("Éxito", f"Inscripción guardada correctamente\nID: {registro['id'][:8]}")
             self._limpiar()
             self.refresh()
             self.app.refresh_all()
@@ -643,32 +641,31 @@ class FormTab(BaseTab):
         # Recargar registros filtrados
         registros = cargar_registros()
         
+        idx = 0
         for reg in registros:
-            # Filtrar por texto en nombre, apellido, DNI, legajo o materia
+            # Filtrar por texto en nombre, apellido o DNI
             nombre = reg.get("nombre", "").lower()
             apellido = reg.get("apellido", "").lower()
             dni = reg.get("dni", "").lower()
-            legajo = reg.get("legajo", "").lower()
             materia = reg.get("materia", "").lower()
             
             if (search_text in nombre or 
                 search_text in apellido or 
                 search_text in dni or
-                search_text in legajo or
                 search_text in materia):
                 
-                # Usar ID completo como iid
-                id_completo = reg.get("id", "")
-                self.tree.insert("", tk.END, iid=id_completo, values=(
+                tag = "evenrow" if idx % 2 == 0 else "oddrow"
+                self.tree.insert("", tk.END, values=(
+                    reg.get("id", "")[:8],
                     reg.get("nombre", ""),
                     reg.get("apellido", ""),
                     reg.get("dni", ""),
-                    reg.get("legajo", ""),
                     reg.get("materia", ""),
                     reg.get("profesor", ""),
                     reg.get("turno", ""),
                     reg.get("anio", "")
-                ))
+                ), tags=(tag,))
+                idx += 1
 
     def _editar_seleccionado(self):
         """Carga el registro seleccionado en el formulario para editar."""
@@ -677,14 +674,20 @@ class FormTab(BaseTab):
             self.show_warning("Editar", "Selecciona un registro de la tabla")
             return
         
-        # El iid ES el ID completo
-        id_completo = selection[0]
+        # Obtener valores de la fila seleccionada
+        item = self.tree.item(selection[0])
+        values = item['values']
         
-        # Buscar registro por ID exacto
+        if not values:
+            return
+        
+        # Buscar registro completo por ID
+        id_corto = values[0]
         registros = cargar_registros()
+        
         registro = None
         for reg in registros:
-            if reg.get("id") == id_completo:
+            if reg.get("id", "").startswith(id_corto):
                 registro = reg
                 break
         
@@ -710,10 +713,6 @@ class FormTab(BaseTab):
             self.entries["edad"].delete(0, tk.END)
             self.entries["edad"].insert(0, registro.get("edad", ""))
         
-        if "legajo" in self.entries:
-            self.entries["legajo"].delete(0, tk.END)
-            self.entries["legajo"].insert(0, registro.get("legajo", ""))
-        
         # ... cargar resto de campos ...
         
         self.show_info("Editar", "Registro cargado. Modifica los campos y guarda.")
@@ -725,23 +724,14 @@ class FormTab(BaseTab):
             self.show_warning("Eliminar", "Selecciona un registro de la tabla")
             return
         
-        # El iid ES el ID completo
-        id_completo = selection[0]
+        item = self.tree.item(selection[0])
+        values = item['values']
         
-        # Buscar registro para mostrar confirmación
-        registros = cargar_registros()
-        registro = None
-        for reg in registros:
-            if reg.get("id") == id_completo:
-                registro = reg
-                break
-        
-        if not registro:
-            self.show_error("Error", "No se encontró el registro")
+        if not values:
             return
         
-        nombre = registro.get("nombre", "")
-        apellido = registro.get("apellido", "")
+        nombre = values[1]
+        apellido = values[2]
         
         if not self.ask_yes_no(
             "Confirmar eliminación",
@@ -749,10 +739,13 @@ class FormTab(BaseTab):
         ):
             return
         
-        # Eliminar por ID exacto
+        # Buscar y eliminar por ID
+        id_corto = values[0]
+        registros = cargar_registros()
+        
         registros_filtrados = [
             reg for reg in registros 
-            if reg.get("id") != id_completo
+            if not reg.get("id", "").startswith(id_corto)
         ]
         
         from database.csv_handler import guardar_todos_registros
@@ -772,14 +765,16 @@ class FormTab(BaseTab):
             self.show_warning("Certificado", "Selecciona un registro de la tabla")
             return
         
-        # El iid ES el ID completo
-        id_completo = selection[0]
+        # Obtener ID y buscar registro completo
+        item = self.tree.item(selection[0])
+        values = item['values']
+        id_corto = values[0]
         
-        # Buscar registro por ID exacto
         registros = cargar_registros()
+        
         registro = None
         for reg in registros:
-            if reg.get("id") == id_completo:
+            if reg.get("id", "").startswith(id_corto):
                 registro = reg
                 break
         
@@ -803,22 +798,19 @@ class FormTab(BaseTab):
         # Cargar registros desde CSV
         registros = cargar_registros()
         
-        # Poblar tabla (GUARDAR ID OCULTO EN iid)
-        for reg in registros:
-            # Usar el ID completo como iid (identificador interno)
-            id_completo = reg.get("id", "")
-            
-            # Mostrar datos en la tabla (sin columna ID)
-            self.tree.insert("", tk.END, iid=id_completo, values=(
+        # Poblar tabla con filas alternas
+        for idx, reg in enumerate(registros):
+            tag = "evenrow" if idx % 2 == 0 else "oddrow"
+            self.tree.insert("", tk.END, values=(
+                reg.get("id", "")[:8],
                 reg.get("nombre", ""),
                 reg.get("apellido", ""),
                 reg.get("dni", ""),
-                reg.get("legajo", ""),  # NUEVO: Mostrar legajo
                 reg.get("materia", ""),
                 reg.get("profesor", ""),
                 reg.get("turno", ""),
                 reg.get("anio", "")
-            ))
+            ), tags=(tag,))
 
     # ============= NUEVOS MÉTODOS =============
 
@@ -1027,14 +1019,16 @@ class FormTab(BaseTab):
             self.show_warning("Sin selección", "Selecciona un registro de la tabla")
             return
         
-        # El iid ES el ID completo
-        id_completo = sel[0]
+        iid = sel[0]
+        item = self.tree.item(iid)
+        values = item['values']
+        id_corto = values[0]
         
-        # Buscar registro por ID exacto
+        # Buscar registro completo
         registros = cargar_registros()
         registro = None
         for r in registros:
-            if r.get("id") == id_completo:
+            if r.get("id", "").startswith(id_corto):
                 registro = r
                 break
         

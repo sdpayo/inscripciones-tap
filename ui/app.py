@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import ttk
 from config.settings import settings
+from ui.theme import aplicar_tema_alto_contraste
 
 class InscripcionApp:
     """Aplicación principal de inscripciones."""
@@ -23,20 +24,8 @@ class InscripcionApp:
     
     def _setup_style(self):
         """Configura estilos de la aplicación."""
-        style = ttk.Style()
-        
-        # Tema
-        theme = settings.get("ui.theme", "clam")
-        available_themes = style.theme_names()
-        if theme in available_themes:
-            style.theme_use(theme)
-        else:
-            style.theme_use("clam")
-        
-        # Configuraciones personalizadas
-        style.configure("TLabel", padding=2)
-        style.configure("TButton", padding=5)
-        style.configure("TNotebook.Tab", padding=[10, 5])
+        # Aplicar tema con alto contraste
+        self.style = aplicar_tema_alto_contraste(self.root)
     
     def _create_layout(self):
         """Crea el layout principal."""
