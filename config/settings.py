@@ -36,7 +36,7 @@ LOGS_DIR.mkdir(exist_ok=True)
 
 CSV_FIELDS = [
     "id", "fecha_inscripcion", "nombre", "apellido", "dni",
-    "fecha_nacimiento", "edad", "direccion", "telefono", "email",
+    "fecha_nacimiento", "edad", "legajo", "direccion", "telefono", "email",
     "nombre_padre", "nombre_madre", "telefono_emergencia",
     "saeta", "obra_social", "seguro_escolar", "pago_voluntario",
     "monto", "permiso", "observaciones",
