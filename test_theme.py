@@ -18,9 +18,9 @@ aplicar_tema_alto_contraste = module.aplicar_tema_alto_contraste
 def test_colors_defined():
     """Verifica que todos los colores estén definidos."""
     required_colors = [
-        "primary", "primary_dark", "secondary", "danger", "warning",
-        "info", "light", "dark", "bg", "fg", "border", "hover",
-        "selected", "header_bg", "header_fg"
+        "bg_main", "bg_form", "bg_input", "fg_primary", "fg_secondary",
+        "border", "header_bg", "header_fg", "button_bg", "button_hover",
+        "selected", "accent"
     ]
     
     for color in required_colors:
@@ -54,12 +54,12 @@ def test_contrast_ratios():
         darker = min(lum1, lum2)
         return (lighter + 0.05) / (darker + 0.05)
     
-    # Verificar contraste texto principal
-    text_bg_contrast = contrast_ratio(COLORS["fg"], COLORS["bg"])
+    # Verificar contraste texto principal (blanco sobre fondo oscuro)
+    text_bg_contrast = contrast_ratio(COLORS["fg_primary"], COLORS["bg_main"])
     print(f"Contraste texto sobre fondo: {text_bg_contrast:.2f}:1")
     assert text_bg_contrast >= 7.0, f"Contraste texto/fondo debe ser >= 7:1 (AAA), es {text_bg_contrast:.2f}:1"
     
-    # Verificar contraste headers
+    # Verificar contraste headers (blanco sobre negro)
     header_contrast = contrast_ratio(COLORS["header_fg"], COLORS["header_bg"])
     print(f"Contraste header: {header_contrast:.2f}:1")
     assert header_contrast >= 7.0, f"Contraste header debe ser >= 7:1 (AAA), es {header_contrast:.2f}:1"
@@ -71,11 +71,14 @@ def test_theme_function():
     assert callable(aplicar_tema_alto_contraste), "aplicar_tema_alto_contraste debe ser una función"
     print("✅ Función aplicar_tema_alto_contraste está disponible")
 
-def test_alternating_row_colors():
-    """Verifica que los colores de filas alternas sean diferentes."""
-    assert COLORS["bg"] == "#FFFFFF", "Color de fila par debe ser blanco"
-    assert COLORS["light"] == "#F8F9FA", "Color de fila impar debe ser gris claro"
-    print("✅ Colores de filas alternas configurados correctamente")
+def test_dark_theme_colors():
+    """Verifica que los colores del tema oscuro sean correctos."""
+    assert COLORS["bg_main"] == "#2B2B2B", "Fondo principal debe ser #2B2B2B"
+    assert COLORS["bg_form"] == "#1E1E1E", "Fondo formulario debe ser #1E1E1E"
+    assert COLORS["header_bg"] == "#1A1A1A", "Headers tabla debe ser #1A1A1A"
+    assert COLORS["fg_primary"] == "#FFFFFF", "Texto principal debe ser blanco"
+    assert COLORS["bg_input"] == "#3C3C3C", "Campos input debe ser #3C3C3C"
+    print("✅ Colores del tema oscuro configurados correctamente")
 
 if __name__ == "__main__":
     print("=" * 60)
@@ -86,7 +89,7 @@ if __name__ == "__main__":
         test_colors_defined()
         test_contrast_ratios()
         test_theme_function()
-        test_alternating_row_colors()
+        test_dark_theme_colors()
         
         print("\n" + "=" * 60)
         print("✅ TODOS LOS TESTS PASARON")

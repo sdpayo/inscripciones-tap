@@ -1,30 +1,25 @@
-"""Tema personalizado con alto contraste."""
+"""Tema oscuro profesional."""
 from tkinter import ttk
 
-# Colores principales
 COLORS = {
-    "primary": "#0066CC",      # Azul principal
-    "primary_dark": "#004499", # Azul oscuro
-    "secondary": "#28A745",    # Verde éxito
-    "danger": "#DC3545",       # Rojo peligro
-    "warning": "#FFC107",      # Amarillo advertencia
-    "info": "#17A2B8",         # Cyan información
-    "light": "#F8F9FA",        # Gris muy claro
-    "dark": "#212529",         # Gris muy oscuro
-    "bg": "#FFFFFF",           # Fondo blanco
-    "fg": "#212529",           # Texto negro
-    "border": "#DEE2E6",       # Borde gris claro
-    "hover": "#E9ECEF",        # Hover gris
-    "selected": "#CCE5FF",     # Selección azul claro
-    "header_bg": "#495057",    # Header gris oscuro
-    "header_fg": "#FFFFFF",    # Header texto blanco
+    "bg_main": "#2B2B2B",        # Fondo principal
+    "bg_form": "#1E1E1E",        # Fondo formularios
+    "bg_input": "#3C3C3C",       # Fondo campos
+    "fg_primary": "#FFFFFF",     # Texto blanco
+    "fg_secondary": "#CCCCCC",   # Texto gris claro
+    "border": "#4A4A4A",         # Bordes
+    "header_bg": "#1A1A1A",      # Headers tabla negro
+    "header_fg": "#FFFFFF",      # Headers texto blanco
+    "button_bg": "#3C3C3C",      # Botones gris
+    "button_hover": "#4A4A4A",   # Botones hover
+    "selected": "#505050",       # Selección
+    "accent": "#6A6A6A"          # Acento
 }
 
 def aplicar_tema_alto_contraste(root):
-    """Aplica tema con alto contraste a toda la aplicación."""
+    """Aplica tema oscuro profesional."""
     style = ttk.Style(root)
     
-    # Usar tema base
     try:
         style.theme_use("clam")
     except:
@@ -32,82 +27,85 @@ def aplicar_tema_alto_contraste(root):
     
     # === CONFIGURACIÓN GENERAL ===
     style.configure(".",
-        background=COLORS["bg"],
-        foreground=COLORS["fg"],
+        background=COLORS["bg_main"],
+        foreground=COLORS["fg_primary"],
         bordercolor=COLORS["border"],
-        darkcolor=COLORS["dark"],
-        lightcolor=COLORS["light"],
-        troughcolor=COLORS["light"],
-        focuscolor=COLORS["primary"],
+        darkcolor=COLORS["bg_form"],
+        lightcolor=COLORS["accent"],
+        troughcolor=COLORS["bg_input"],
+        fieldbackground=COLORS["bg_input"],
         selectbackground=COLORS["selected"],
-        selectforeground=COLORS["dark"],
-        font=("Segoe UI", 10)
+        selectforeground=COLORS["fg_primary"],
+        font=("Segoe UI", 9)
+    )
+    
+    # === FRAMES ===
+    style.configure("TFrame",
+        background=COLORS["bg_main"]
     )
     
     # === LABELS ===
     style.configure("TLabel",
-        background=COLORS["bg"],
-        foreground=COLORS["dark"],
-        font=("Segoe UI", 10)
-    )
-    
-    style.configure("Title.TLabel",
-        font=("Segoe UI", 14, "bold"),
-        foreground=COLORS["primary_dark"]
+        background=COLORS["bg_main"],
+        foreground=COLORS["fg_primary"],
+        font=("Segoe UI", 9)
     )
     
     # === BUTTONS ===
     style.configure("TButton",
-        background=COLORS["primary"],
-        foreground=COLORS["dark"],
+        background=COLORS["button_bg"],
+        foreground=COLORS["fg_primary"],
+        bordercolor=COLORS["border"],
         borderwidth=1,
-        focuscolor="none",
-        font=("Segoe UI", 10),
+        relief="flat",
+        font=("Segoe UI", 9),
         padding=(10, 5)
     )
     
     style.map("TButton",
-        background=[("active", COLORS["primary_dark"]), ("pressed", COLORS["primary_dark"])],
-        foreground=[("active", COLORS["fg"])]
-    )
-    
-    # Botón de éxito (verde)
-    style.configure("Success.TButton",
-        background=COLORS["secondary"],
-        foreground="white"
-    )
-    
-    # Botón de peligro (rojo)
-    style.configure("Danger.TButton",
-        background=COLORS["danger"],
-        foreground="white"
+        background=[("active", COLORS["button_hover"]), ("pressed", COLORS["button_hover"])],
+        foreground=[("active", COLORS["fg_primary"])],
+        bordercolor=[("active", COLORS["accent"])]
     )
     
     # === ENTRIES ===
     style.configure("TEntry",
-        fieldbackground=COLORS["bg"],
-        foreground=COLORS["dark"],
+        fieldbackground=COLORS["bg_input"],
+        foreground=COLORS["fg_primary"],
         bordercolor=COLORS["border"],
+        insertcolor=COLORS["fg_primary"],
         lightcolor=COLORS["border"],
-        darkcolor=COLORS["border"],
-        insertcolor=COLORS["dark"]
+        darkcolor=COLORS["border"]
+    )
+    
+    style.map("TEntry",
+        fieldbackground=[("focus", COLORS["bg_input"])],
+        bordercolor=[("focus", COLORS["accent"])]
     )
     
     # === COMBOBOX ===
     style.configure("TCombobox",
-        fieldbackground=COLORS["bg"],
-        background=COLORS["bg"],
-        foreground=COLORS["dark"],
-        arrowcolor=COLORS["dark"],
-        bordercolor=COLORS["border"]
+        fieldbackground=COLORS["bg_input"],
+        background=COLORS["bg_input"],
+        foreground=COLORS["fg_primary"],
+        arrowcolor=COLORS["fg_primary"],
+        bordercolor=COLORS["border"],
+        selectbackground=COLORS["selected"],
+        selectforeground=COLORS["fg_primary"]
+    )
+    
+    style.map("TCombobox",
+        fieldbackground=[("readonly", COLORS["bg_input"]), ("focus", COLORS["bg_input"])],
+        selectbackground=[("readonly", COLORS["selected"])],
+        bordercolor=[("focus", COLORS["accent"])]
     )
     
     # === TREEVIEW (Tablas) ===
     style.configure("Treeview",
-        background=COLORS["bg"],
-        foreground=COLORS["dark"],
-        fieldbackground=COLORS["bg"],
-        borderwidth=1,
+        background=COLORS["bg_form"],
+        foreground=COLORS["fg_primary"],
+        fieldbackground=COLORS["bg_form"],
+        borderwidth=0,
         font=("Segoe UI", 9)
     )
     
@@ -115,49 +113,80 @@ def aplicar_tema_alto_contraste(root):
         background=COLORS["header_bg"],
         foreground=COLORS["header_fg"],
         borderwidth=1,
-        font=("Segoe UI", 10, "bold")
+        relief="flat",
+        font=("Segoe UI", 9, "bold")
     )
     
     style.map("Treeview.Heading",
-        background=[("active", COLORS["primary_dark"])]
+        background=[("active", COLORS["button_hover"])],
+        foreground=[("active", COLORS["fg_primary"])]
     )
     
     style.map("Treeview",
-        background=[("selected", COLORS["primary"])],
-        foreground=[("selected", "white")]
+        background=[("selected", COLORS["selected"])],
+        foreground=[("selected", COLORS["fg_primary"])]
     )
     
     # === LABELFRAME ===
     style.configure("TLabelframe",
-        background=COLORS["bg"],
-        foreground=COLORS["dark"],
+        background=COLORS["bg_main"],
+        foreground=COLORS["fg_primary"],
         bordercolor=COLORS["border"],
-        borderwidth=2
+        borderwidth=1,
+        relief="flat"
     )
     
     style.configure("TLabelframe.Label",
-        background=COLORS["bg"],
-        foreground=COLORS["primary_dark"],
+        background=COLORS["bg_main"],
+        foreground=COLORS["fg_primary"],
         font=("Segoe UI", 10, "bold")
     )
     
     # === NOTEBOOK (Pestañas) ===
     style.configure("TNotebook",
-        background=COLORS["light"],
+        background=COLORS["bg_main"],
         borderwidth=0
     )
     
     style.configure("TNotebook.Tab",
-        background=COLORS["light"],
-        foreground=COLORS["dark"],
+        background=COLORS["bg_form"],
+        foreground=COLORS["fg_secondary"],
+        bordercolor=COLORS["border"],
         padding=(15, 8),
-        font=("Segoe UI", 10)
+        font=("Segoe UI", 9)
     )
     
     style.map("TNotebook.Tab",
-        background=[("selected", COLORS["bg"])],
-        foreground=[("selected", COLORS["primary_dark"])],
-        expand=[("selected", [1, 1, 1, 0])]
+        background=[("selected", COLORS["bg_main"])],
+        foreground=[("selected", COLORS["fg_primary"])],
+        bordercolor=[("selected", COLORS["accent"])]
+    )
+    
+    # === SCROLLBAR ===
+    style.configure("Vertical.TScrollbar",
+        background=COLORS["bg_input"],
+        troughcolor=COLORS["bg_form"],
+        bordercolor=COLORS["border"],
+        arrowcolor=COLORS["fg_primary"]
+    )
+    
+    # === CHECKBUTTON ===
+    style.configure("TCheckbutton",
+        background=COLORS["bg_main"],
+        foreground=COLORS["fg_primary"],
+        font=("Segoe UI", 9)
+    )
+    
+    # === RADIOBUTTON ===
+    style.configure("TRadiobutton",
+        background=COLORS["bg_main"],
+        foreground=COLORS["fg_primary"],
+        font=("Segoe UI", 9)
+    )
+    
+    # === SEPARADOR ===
+    style.configure("TSeparator",
+        background=COLORS["border"]
     )
     
     return style
