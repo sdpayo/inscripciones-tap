@@ -89,12 +89,38 @@ def guardar_todos_registros(registros: List[Dict]) -> tuple:
         return False, f"Error al guardar: {e}"
 
 
-def generar_id():
+def generar_id(registro=None):
     """
-    Genera ID único para un registro.
-    Returns: str
+    Genera ID único basado en legajo + fecha + hora.
+    Formato: {LEGAJO}-{YYYYMMDD}-{HHMM}
+    
+    Args:
+        registro (dict, optional): Datos del registro (debe tener 'legajo' o 'dni')
+    
+    Returns:
+        str: ID único
     """
-    return str(uuid.uuid4())[:8]
+    # Obtener legajo (o DNI como fallback)
+    legajo = ""
+    if registro:
+        legajo = registro.get("legajo", "") or registro.get("dni", "")
+    
+    if not legajo:
+        # Si no hay legajo ni DNI, generar temporal con timestamp
+        legajo = "TEMP"
+    
+    # Limpiar legajo (solo alfanuméricos)
+    legajo = "".join(c for c in str(legajo) if c.isalnum())
+    
+    # Generar timestamp
+    now = datetime.now()
+    fecha = now.strftime("%Y%m%d")  # YYYYMMDD
+    hora = now.strftime("%H%M")      # HHMM
+    
+    # Formato: LEGAJO-FECHA-HORA
+    id_generado = f"{legajo}-{fecha}-{hora}"
+    
+    return id_generado
 
 
 def actualizar_registro(datos):
@@ -249,3 +275,24 @@ def exportar_listado(filtros=None):
             resultado.append(reg)
     
     return resultado
+
+
+def migrar_id_si_es_uuid(registro):
+    """
+    Migra IDs antiguos UUID a nuevo formato.
+    Args:
+        registro (dict): Registro a verificar y migrar si es necesario
+    Returns:
+        dict: Registro con ID actualizado si fue necesario
+    """
+    id_actual = registro.get("id", "")
+    
+    # Si es UUID (formato: 12663a87-6791-deb2-7789-...)
+    # Los UUIDs tienen múltiples guiones y son largos (>20 caracteres)
+    if len(id_actual) > 20 and id_actual.count("-") >= 4:
+        # Regenerar ID
+        nuevo_id = generar_id(registro)
+        registro["id"] = nuevo_id
+        print(f"[INFO] ID migrado: {id_actual[:8]}... -> {nuevo_id}")
+    
+    return registro

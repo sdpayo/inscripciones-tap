@@ -38,7 +38,7 @@ class FormTab(BaseTab):
     """Pestaña de formulario de inscripción."""
                 
     def _build_ui(self):
-        """Construye la interfaz del formulario con layout de 2 columnas sin scroll."""
+        """Construye la interfaz del formulario con layout de 2 columnas."""
         # Contenedor principal con dos paneles
         main_paned = ttk.PanedWindow(self.frame, orient=tk.HORIZONTAL)
         main_paned.pack(fill=tk.BOTH, expand=True)
@@ -47,29 +47,27 @@ class FormTab(BaseTab):
         left_panel = ttk.Frame(main_paned)
         main_paned.add(left_panel, weight=1)
     
-        # Contenedor principal del formulario (sin scroll)
-        self.form_container = ttk.Frame(left_panel)
-        self.form_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # Contenedor con scroll para el formulario
+        canvas = tk.Canvas(left_panel)
+        scrollbar = ttk.Scrollbar(left_panel, orient="vertical", command=canvas.yview)
+        self.form_container = ttk.Frame(canvas)
     
-        # Crear layout de 2 columnas para las primeras 4 secciones
-        columns_frame = ttk.Frame(self.form_container)
-        columns_frame.pack(fill=tk.BOTH, expand=True)
+        self.form_container.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
     
-        # Columna izquierda
-        left_column = ttk.Frame(columns_frame)
-        left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=3)
+        canvas.create_window((0, 0), window=self.form_container, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
     
-        # Columna derecha
-        right_column = ttk.Frame(columns_frame)
-        right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=3)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
     
-        # Construir secciones en 2 columnas
-        self._build_datos_personales_compact(left_column)
-        self._build_otros_datos_compact(left_column)
-        self._build_datos_contacto(right_column)
-        self._build_datos_responsables(right_column)
-    
-        # Secciones de ancho completo
+        # Construir secciones del formulario
+        self._build_datos_personales()
+        self._build_datos_contacto()
+        self._build_datos_responsables()
+        self._build_otros_datos()
         self._build_inscripcion()
         self._build_buttons()
     
@@ -80,181 +78,164 @@ class FormTab(BaseTab):
         # Llamar al método _build_table que ya existe
         self._build_table(right_panel)
 
-    def _build_datos_personales_compact(self, parent):
-        """Construye sección compacta de Datos Personales."""
-        personales_frame = ttk.LabelFrame(parent, text="Datos Personales", padding=3)
-        personales_frame.pack(fill=tk.X, padx=3, pady=3)
+    def _build_datos_personales(self):
+        """Construye sección de Datos Personales."""
+        personales_frame = ttk.LabelFrame(self.form_container, text="Datos Personales", padding=10)
+        personales_frame.pack(fill=tk.X, padx=10, pady=10)
         
         self.entries = {}
         row = 0
         
         # Nombre
-        ttk.Label(personales_frame, text="Nombre:*").grid(row=row, column=0, sticky="e", padx=3, pady=3)
-        self.entries["nombre"] = ttk.Entry(personales_frame, width=20)
-        self.entries["nombre"].grid(row=row, column=1, sticky="ew", padx=3, pady=3)
-        row += 1
+        ttk.Label(personales_frame, text="Nombre:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["nombre"] = ttk.Entry(personales_frame, width=30)
+        self.entries["nombre"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
         
         # Apellido
-        ttk.Label(personales_frame, text="Apellido:*").grid(row=row, column=0, sticky="e", padx=3, pady=3)
-        self.entries["apellido"] = ttk.Entry(personales_frame, width=20)
-        self.entries["apellido"].grid(row=row, column=1, sticky="ew", padx=3, pady=3)
+        ttk.Label(personales_frame, text="Apellido:*").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.entries["apellido"] = ttk.Entry(personales_frame, width=30)
+        self.entries["apellido"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
         row += 1
         
         # DNI
-        ttk.Label(personales_frame, text="DNI:*").grid(row=row, column=0, sticky="e", padx=3, pady=3)
-        self.entries["dni"] = ttk.Entry(personales_frame, width=20)
-        self.entries["dni"].grid(row=row, column=1, sticky="ew", padx=3, pady=3)
-        row += 1
+        ttk.Label(personales_frame, text="DNI:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["dni"] = ttk.Entry(personales_frame, width=15)
+        self.entries["dni"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
         
         # Fecha de Nacimiento
-        ttk.Label(personales_frame, text="Fecha Nac.:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
-        self.entries["fecha_nacimiento"] = ttk.Entry(personales_frame, width=20)
-        self.entries["fecha_nacimiento"].grid(row=row, column=1, sticky="ew", padx=3, pady=3)
+        ttk.Label(personales_frame, text="Fecha Nacimiento:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.entries["fecha_nacimiento"] = ttk.Entry(personales_frame, width=15)
+        self.entries["fecha_nacimiento"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
         row += 1
         
-        # Edad y Legajo en misma fila
-        ttk.Label(personales_frame, text="Edad:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
-        edad_legajo_frame = ttk.Frame(personales_frame)
-        edad_legajo_frame.grid(row=row, column=1, sticky="ew", padx=3, pady=3)
+        # Edad
+        ttk.Label(personales_frame, text="Edad:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["edad"] = ttk.Entry(personales_frame, width=10)
+        self.entries["edad"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
         
-        self.entries["edad"] = ttk.Entry(edad_legajo_frame, width=8)
-        self.entries["edad"].pack(side=tk.LEFT)
-        
-        ttk.Label(edad_legajo_frame, text="Legajo:").pack(side=tk.LEFT, padx=(5, 2))
-        self.entries["legajo"] = ttk.Entry(edad_legajo_frame, width=10)
-        self.entries["legajo"].pack(side=tk.LEFT)
-        
-        personales_frame.columnconfigure(1, weight=1)
+        # Legajo
+        ttk.Label(personales_frame, text="Legajo:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.entries["legajo"] = ttk.Entry(personales_frame, width=15)
+        self.entries["legajo"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
 
-    def _build_datos_contacto(self, parent):
-        """Construye sección compacta de Datos de Contacto."""
-        contacto_frame = ttk.LabelFrame(parent, text="Datos de Contacto", padding=3)
-        contacto_frame.pack(fill=tk.X, padx=3, pady=3)
+    def _build_datos_contacto(self):
+        """Construye sección de Datos de Contacto."""
+        contacto_frame = ttk.LabelFrame(self.form_container, text="Datos de Contacto", padding=10)
+        contacto_frame.pack(fill=tk.X, padx=10, pady=10)
         
         row = 0
         
         # Dirección
-        ttk.Label(contacto_frame, text="Dirección:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
-        self.entries["direccion"] = ttk.Entry(contacto_frame, width=20)
-        self.entries["direccion"].grid(row=row, column=1, sticky="ew", padx=3, pady=3)
+        ttk.Label(contacto_frame, text="Dirección:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["direccion"] = ttk.Entry(contacto_frame, width=50)
+        self.entries["direccion"].grid(row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5)
         row += 1
         
         # Teléfono
-        ttk.Label(contacto_frame, text="Teléfono:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
+        ttk.Label(contacto_frame, text="Teléfono:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
         self.entries["telefono"] = ttk.Entry(contacto_frame, width=20)
-        self.entries["telefono"].grid(row=row, column=1, sticky="ew", padx=3, pady=3)
-        row += 1
+        self.entries["telefono"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
         
         # Email
-        ttk.Label(contacto_frame, text="Email:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
-        self.entries["email"] = ttk.Entry(contacto_frame, width=20)
-        self.entries["email"].grid(row=row, column=1, sticky="ew", padx=3, pady=3)
-        
-        contacto_frame.columnconfigure(1, weight=1)
+        ttk.Label(contacto_frame, text="Email:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.entries["email"] = ttk.Entry(contacto_frame, width=30)
+        self.entries["email"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
 
-    def _build_datos_responsables(self, parent):
-        """Construye sección compacta de Datos de Responsables."""
-        responsables_frame = ttk.LabelFrame(parent, text="Datos de Responsables", padding=3)
-        responsables_frame.pack(fill=tk.X, padx=3, pady=3)
+    def _build_datos_responsables(self):
+        """Construye sección de Datos de Responsables."""
+        responsables_frame = ttk.LabelFrame(self.form_container, text="Datos de Responsables", padding=10)
+        responsables_frame.pack(fill=tk.X, padx=10, pady=10)
         
         row = 0
         
         # Nombre Padre
-        ttk.Label(responsables_frame, text="Nombre Padre:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
-        self.entries["nombre_padre"] = ttk.Entry(responsables_frame, width=20)
-        self.entries["nombre_padre"].grid(row=row, column=1, sticky="ew", padx=3, pady=3)
-        row += 1
+        ttk.Label(responsables_frame, text="Nombre Padre:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["nombre_padre"] = ttk.Entry(responsables_frame, width=30)
+        self.entries["nombre_padre"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
         
         # Nombre Madre
-        ttk.Label(responsables_frame, text="Nombre Madre:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
-        self.entries["nombre_madre"] = ttk.Entry(responsables_frame, width=20)
-        self.entries["nombre_madre"].grid(row=row, column=1, sticky="ew", padx=3, pady=3)
+        ttk.Label(responsables_frame, text="Nombre Madre:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.entries["nombre_madre"] = ttk.Entry(responsables_frame, width=30)
+        self.entries["nombre_madre"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
         row += 1
         
         # Teléfono Emergencia
-        ttk.Label(responsables_frame, text="Tel. Emergencia:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
+        ttk.Label(responsables_frame, text="Tel. Emergencia:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
         self.entries["telefono_emergencia"] = ttk.Entry(responsables_frame, width=20)
-        self.entries["telefono_emergencia"].grid(row=row, column=1, sticky="ew", padx=3, pady=3)
-        
-        responsables_frame.columnconfigure(1, weight=1)
+        self.entries["telefono_emergencia"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
 
-    def _build_otros_datos_compact(self, parent):
-        """Construye sección compacta de Otros Datos."""
-        otros_frame = ttk.LabelFrame(parent, text="Otros Datos", padding=3)
-        otros_frame.pack(fill=tk.X, padx=3, pady=3)
+    def _build_otros_datos(self):
+        """Construye sección de Otros Datos."""
+        otros_frame = ttk.LabelFrame(self.form_container, text="Otros Datos", padding=10)
+        otros_frame.pack(fill=tk.X, padx=10, pady=10)
         
         row = 0
         
         # SAETA
-        ttk.Label(otros_frame, text="SAETA:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
+        ttk.Label(otros_frame, text="SAETA:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
         self.saeta_var = tk.StringVar(value="No")
         ttk.Combobox(
             otros_frame,
             textvariable=self.saeta_var,
             values=["No", "Sí"],
             state="readonly",
-            width=10
-        ).grid(row=row, column=1, sticky="ew", padx=3, pady=3)
-        row += 1
+            width=15
+        ).grid(row=row, column=1, sticky="w", padx=5, pady=5)
         
         # Obra Social
-        ttk.Label(otros_frame, text="Obra Social:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
-        self.entries["obra_social"] = ttk.Entry(otros_frame, width=20)
-        self.entries["obra_social"].grid(row=row, column=1, sticky="ew", padx=3, pady=3)
+        ttk.Label(otros_frame, text="Obra Social:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.entries["obra_social"] = ttk.Entry(otros_frame, width=30)
+        self.entries["obra_social"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
         row += 1
         
         # Seguro Escolar
-        ttk.Label(otros_frame, text="Seguro Escolar:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
+        ttk.Label(otros_frame, text="Seguro Escolar:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
         self.seguro_escolar_var = tk.StringVar(value="No")
         ttk.Combobox(
             otros_frame,
             textvariable=self.seguro_escolar_var,
             values=["No", "Sí"],
             state="readonly",
-            width=10
-        ).grid(row=row, column=1, sticky="ew", padx=3, pady=3)
-        row += 1
+            width=15
+        ).grid(row=row, column=1, sticky="w", padx=5, pady=5)
         
         # Pago Voluntario
-        ttk.Label(otros_frame, text="Pago Voluntario:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
+        ttk.Label(otros_frame, text="Pago Voluntario:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
         self.pago_voluntario_var = tk.StringVar(value="No")
         ttk.Combobox(
             otros_frame,
             textvariable=self.pago_voluntario_var,
             values=["No", "Sí"],
             state="readonly",
-            width=10
-        ).grid(row=row, column=1, sticky="ew", padx=3, pady=3)
+            width=15
+        ).grid(row=row, column=3, sticky="w", padx=5, pady=5)
         row += 1
         
         # Monto
-        ttk.Label(otros_frame, text="Monto:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
-        self.entries["monto"] = ttk.Entry(otros_frame, width=20)
-        self.entries["monto"].grid(row=row, column=1, sticky="ew", padx=3, pady=3)
-        row += 1
+        ttk.Label(otros_frame, text="Monto:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["monto"] = ttk.Entry(otros_frame, width=15)
+        self.entries["monto"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
         
         # Permiso
-        ttk.Label(otros_frame, text="Permiso:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
+        ttk.Label(otros_frame, text="Permiso:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
         self.permiso_var = tk.StringVar(value="No")
         ttk.Combobox(
             otros_frame,
             textvariable=self.permiso_var,
             values=["No", "Sí"],
             state="readonly",
-            width=10
-        ).grid(row=row, column=1, sticky="ew", padx=3, pady=3)
-        
-        otros_frame.columnconfigure(1, weight=1)
+            width=15
+        ).grid(row=row, column=3, sticky="w", padx=5, pady=5)
 
     def _build_inscripcion(self):
         """Construye sección de Inscripción."""
-        inscripcion_frame = ttk.LabelFrame(self.form_container, text="Inscripción", padding=3)
-        inscripcion_frame.pack(fill=tk.X, padx=3, pady=3)
+        inscripcion_frame = ttk.LabelFrame(self.form_container, text="Inscripción", padding=10)
+        inscripcion_frame.pack(fill=tk.X, padx=10, pady=10)
         
         row = 0
         
         # AÑO
-        ttk.Label(inscripcion_frame, text="Año:*").grid(row=row, column=0, sticky="e", padx=3, pady=3)
+        ttk.Label(inscripcion_frame, text="Año:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
         self.anio_var = tk.StringVar()
         self.anio_combo = ttk.Combobox(
             inscripcion_frame,
@@ -263,11 +244,11 @@ class FormTab(BaseTab):
             state="readonly",
             width=10
         )
-        self.anio_combo.grid(row=row, column=1, sticky="w", padx=3, pady=3)
+        self.anio_combo.grid(row=row, column=1, sticky="w", padx=5, pady=5)
         self.anio_combo.bind("<<ComboboxSelected>>", self._on_anio_change)
         
         # TURNO
-        ttk.Label(inscripcion_frame, text="Turno:*").grid(row=row, column=2, sticky="e", padx=3, pady=3)
+        ttk.Label(inscripcion_frame, text="Turno:*").grid(row=row, column=2, sticky="e", padx=5, pady=5)
         self.turno_var = tk.StringVar()
         ttk.Combobox(
             inscripcion_frame,
@@ -275,11 +256,11 @@ class FormTab(BaseTab):
             values=["Mañana", "Tarde", "Vespertino", "Noche"],
             state="readonly",
             width=15
-        ).grid(row=row, column=3, sticky="w", padx=3, pady=3)
+        ).grid(row=row, column=3, sticky="w", padx=5, pady=5)
         row += 1
         
         # MATERIA
-        ttk.Label(inscripcion_frame, text="Materia:*").grid(row=row, column=0, sticky="e", padx=3, pady=3)
+        ttk.Label(inscripcion_frame, text="Materia:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
         self.materia_var = tk.StringVar()
         self.materia_combo = ttk.Combobox(
             inscripcion_frame,
@@ -288,12 +269,12 @@ class FormTab(BaseTab):
             state="readonly",
             width=50
         )
-        self.materia_combo.grid(row=row, column=1, columnspan=3, sticky="w", padx=3, pady=3)
+        self.materia_combo.grid(row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5)
         self.materia_combo.bind("<<ComboboxSelected>>", self._on_materia_change)
         row += 1
         
         # PROFESOR/A
-        ttk.Label(inscripcion_frame, text="Profesor/a:*").grid(row=row, column=0, sticky="e", padx=3, pady=3)
+        ttk.Label(inscripcion_frame, text="Profesor/a:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
         self.profesor_var = tk.StringVar()
         self.profesor_combo = ttk.Combobox(
             inscripcion_frame,
@@ -302,11 +283,11 @@ class FormTab(BaseTab):
             state="readonly",
             width=30
         )
-        self.profesor_combo.grid(row=row, column=1, sticky="w", padx=3, pady=3)
+        self.profesor_combo.grid(row=row, column=1, sticky="w", padx=5, pady=5)
         self.profesor_combo.bind("<<ComboboxSelected>>", self._on_profesor_change)
         
         # COMISIÓN
-        ttk.Label(inscripcion_frame, text="Comisión:*").grid(row=row, column=2, sticky="e", padx=3, pady=3)
+        ttk.Label(inscripcion_frame, text="Comisión:*").grid(row=row, column=2, sticky="e", padx=5, pady=5)
         self.comision_var = tk.StringVar()
         self.comision_combo = ttk.Combobox(
             inscripcion_frame,
@@ -315,19 +296,19 @@ class FormTab(BaseTab):
             state="readonly",
             width=15
         )
-        self.comision_combo.grid(row=row, column=3, sticky="w", padx=3, pady=3)
+        self.comision_combo.grid(row=row, column=3, sticky="w", padx=5, pady=5)
         self.comision_combo.bind("<<ComboboxSelected>>", self._on_comision_change)
         row += 1
         
         # HORARIO (automático)
-        ttk.Label(inscripcion_frame, text="Horario:").grid(row=row, column=0, sticky="e", padx=3, pady=3)
+        ttk.Label(inscripcion_frame, text="Horario:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
         self.horario_var = tk.StringVar()
         ttk.Entry(
             inscripcion_frame,
             textvariable=self.horario_var,
             width=30,
             state="readonly"
-        ).grid(row=row, column=1, columnspan=3, sticky="w", padx=3, pady=3)
+        ).grid(row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5)
         row += 1
         
         # Texto informativo
@@ -336,54 +317,54 @@ class FormTab(BaseTab):
             text="El horario se completa automáticamente",
             font=("Helvetica", 8),
             foreground="gray"
-        ).grid(row=row, column=0, columnspan=4, sticky="w", padx=3)
+        ).grid(row=row, column=0, columnspan=4, sticky="w", padx=5)
         row += 1
         
-        # OBSERVACIONES - reducidas a 2 líneas
+        # OBSERVACIONES
         ttk.Label(inscripcion_frame, text="Observaciones:").grid(
-            row=row, column=0, sticky="ne", padx=3, pady=3
+            row=row, column=0, sticky="ne", padx=5, pady=5
         )
-        self.observaciones_text = tk.Text(inscripcion_frame, width=60, height=2)
+        self.observaciones_text = tk.Text(inscripcion_frame, width=60, height=3)
         self.observaciones_text.grid(
-            row=row, column=1, columnspan=3, sticky="w", padx=3, pady=3
+            row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5
         )
 
     def _build_buttons(self):
         """Construye sección de botones."""
         buttons_frame = ttk.Frame(self.form_container)
-        buttons_frame.pack(fill=tk.X, padx=3, pady=3)
+        buttons_frame.pack(fill=tk.X, padx=10, pady=10)
         
         # Botones principales
         ttk.Button(
             buttons_frame,
             text="💾 Guardar Inscripción",
             command=self._guardar
-        ).grid(row=0, column=0, padx=3, pady=3)
+        ).grid(row=0, column=0, padx=5, pady=5)
         
         ttk.Button(
             buttons_frame,
             text="🗑️ Limpiar Formulario",
             command=self._limpiar
-        ).grid(row=0, column=1, padx=3, pady=3)
+        ).grid(row=0, column=1, padx=5, pady=5)
         
         # === NUEVOS BOTONES ===
         ttk.Button(
             buttons_frame,
             text="📧 Generar y Enviar",
             command=self._generar_y_enviar
-        ).grid(row=0, column=2, padx=3, pady=3)
+        ).grid(row=0, column=2, padx=5, pady=5)
         
         ttk.Button(
             buttons_frame,
             text="📄 Generar Certificado",
             command=self._generar_certificado
-        ).grid(row=0, column=3, padx=3, pady=3)
+        ).grid(row=0, column=3, padx=5, pady=5)
         
         ttk.Button(
             buttons_frame,
             text="📊 Exportar Excel",
             command=self._exportar_excel
-        ).grid(row=0, column=4, padx=3, pady=3)
+        ).grid(row=0, column=4, padx=5, pady=5)
 
     def _build_table(self, parent):
         """Construye tabla de inscripciones registradas."""
@@ -419,7 +400,7 @@ class FormTab(BaseTab):
         tree_scroll_x = ttk.Scrollbar(table_frame, orient="horizontal")
         
         # Treeview
-        columns = ("ID", "Nombre", "Apellido", "DNI", "Materia", "Profesor", "Turno", "Año")
+        columns = ("Nombre", "Apellido", "DNI", "Legajo", "Materia", "Profesor", "Turno", "Año")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
@@ -434,10 +415,10 @@ class FormTab(BaseTab):
         
         # Configurar columnas
         column_widths = {
-            "ID": 80,
             "Nombre": 120,
             "Apellido": 120,
             "DNI": 100,
+            "Legajo": 100,
             "Materia": 200,
             "Profesor": 150,
             "Turno": 80,
@@ -580,18 +561,14 @@ class FormTab(BaseTab):
             self.show_warning("Validación", "La comisión es obligatoria")
             return
         
-        # Construir registro
-        import uuid
-        
-        registro = {
-            "id": str(uuid.uuid4()),
-            "fecha_inscripcion": datetime.now().isoformat(),
+        # Construir registro PRIMERO (con legajo) para generar ID
+        registro_temp = {
+            "legajo": self.entries.get("legajo", ttk.Entry(self.form_container)).get().strip() or self.entries["dni"].get().strip(),
             "nombre": self.entries["nombre"].get().strip(),
             "apellido": self.entries["apellido"].get().strip(),
             "dni": self.entries["dni"].get().strip(),
             "fecha_nacimiento": self.entries.get("fecha_nacimiento", ttk.Entry(self.form_container)).get().strip(),
             "edad": self.entries.get("edad", ttk.Entry(self.form_container)).get().strip(),
-            "legajo": self.entries.get("legajo", ttk.Entry(self.form_container)).get().strip(),
             "direccion": self.entries.get("direccion", ttk.Entry(self.form_container)).get().strip(),
             "telefono": self.entries.get("telefono", ttk.Entry(self.form_container)).get().strip(),
             "email": self.entries.get("email", ttk.Entry(self.form_container)).get().strip(),
@@ -614,10 +591,20 @@ class FormTab(BaseTab):
             "en_lista_espera": "No"
         }
         
+        # Generar ID basado en el registro
+        nuevo_id = generar_id(registro_temp)
+        
+        # Agregar ID y fecha al registro
+        registro = {
+            "id": nuevo_id,
+            "fecha_inscripcion": datetime.now().isoformat(),
+            **registro_temp
+        }
+        
         # Guardar
         try:
             guardar_registro(registro)
-            self.show_info("Éxito", f"Inscripción guardada correctamente\nID: {registro['id'][:8]}")
+            self.show_info("Éxito", f"Inscripción guardada correctamente\nID: {nuevo_id}")
             self._limpiar()
             self.refresh()
             self.app.refresh_all()
@@ -646,66 +633,42 @@ class FormTab(BaseTab):
         self.observaciones_text.delete("1.0", tk.END)
 
     def _filtrar_tabla(self):
-        """Filtra la tabla según el texto de búsqueda (busca en todos los campos)."""
-        search_text = self.search_var.get().lower().strip()
+        """Filtra la tabla según el texto de búsqueda."""
+        search_text = self.search_var.get().lower()
         
         # Limpiar tabla
         for item in self.tree.get_children():
             self.tree.delete(item)
         
-        # Cargar registros
+        # Recargar registros filtrados
         registros = cargar_registros()
         
-        # Si no hay búsqueda, mostrar todos
-        if not search_text:
-            for reg in registros:
-                self._insertar_en_tabla(reg)
-            return
-        
-        # Dividir búsqueda en palabras (búsqueda AND)
-        palabras = search_text.split()
-        
-        # Filtrar registros
         for reg in registros:
-            # Campos donde buscar (convertir a string y minúsculas)
-            campos_busqueda = [
-                reg.get("nombre", ""),
-                reg.get("apellido", ""),
-                reg.get("dni", ""),
-                reg.get("legajo", ""),
-                reg.get("email", ""),
-                reg.get("telefono", ""),
-                reg.get("direccion", ""),
-                reg.get("materia", ""),
-                reg.get("profesor", ""),
-                reg.get("comision", ""),
-                reg.get("turno", ""),
-                reg.get("anio", ""),
-                reg.get("observaciones", ""),
-                reg.get("nombre_padre", ""),
-                reg.get("nombre_madre", "")
-            ]
+            # Filtrar por texto en nombre, apellido, DNI, legajo o materia
+            nombre = reg.get("nombre", "").lower()
+            apellido = reg.get("apellido", "").lower()
+            dni = reg.get("dni", "").lower()
+            legajo = reg.get("legajo", "").lower()
+            materia = reg.get("materia", "").lower()
             
-            # Crear texto completo del registro
-            texto_completo = " ".join(str(c).lower() for c in campos_busqueda)
-            
-            # Verificar que TODAS las palabras estén presentes (AND)
-            if all(palabra in texto_completo for palabra in palabras):
-                self._insertar_en_tabla(reg)
-
-    def _insertar_en_tabla(self, reg):
-        """Helper para insertar registro en tabla."""
-        id_completo = reg.get("id", "")
-        self.tree.insert("", tk.END, iid=id_completo[:8], values=(
-            id_completo[:8],
-            reg.get("nombre", ""),
-            reg.get("apellido", ""),
-            reg.get("dni", ""),
-            reg.get("materia", ""),
-            reg.get("profesor", ""),
-            reg.get("turno", ""),
-            reg.get("anio", "")
-        ))
+            if (search_text in nombre or 
+                search_text in apellido or 
+                search_text in dni or
+                search_text in legajo or
+                search_text in materia):
+                
+                # Usar ID completo como iid
+                id_completo = reg.get("id", "")
+                self.tree.insert("", tk.END, iid=id_completo, values=(
+                    reg.get("nombre", ""),
+                    reg.get("apellido", ""),
+                    reg.get("dni", ""),
+                    reg.get("legajo", ""),
+                    reg.get("materia", ""),
+                    reg.get("profesor", ""),
+                    reg.get("turno", ""),
+                    reg.get("anio", "")
+                ))
 
     def _editar_seleccionado(self):
         """Carga el registro seleccionado en el formulario para editar."""
@@ -714,20 +677,14 @@ class FormTab(BaseTab):
             self.show_warning("Editar", "Selecciona un registro de la tabla")
             return
         
-        # Obtener valores de la fila seleccionada
-        item = self.tree.item(selection[0])
-        values = item['values']
+        # El iid ES el ID completo
+        id_completo = selection[0]
         
-        if not values:
-            return
-        
-        # Buscar registro completo por ID
-        id_corto = values[0]
+        # Buscar registro por ID exacto
         registros = cargar_registros()
-        
         registro = None
         for reg in registros:
-            if reg.get("id", "").startswith(id_corto):
+            if reg.get("id") == id_completo:
                 registro = reg
                 break
         
@@ -753,6 +710,10 @@ class FormTab(BaseTab):
             self.entries["edad"].delete(0, tk.END)
             self.entries["edad"].insert(0, registro.get("edad", ""))
         
+        if "legajo" in self.entries:
+            self.entries["legajo"].delete(0, tk.END)
+            self.entries["legajo"].insert(0, registro.get("legajo", ""))
+        
         # ... cargar resto de campos ...
         
         self.show_info("Editar", "Registro cargado. Modifica los campos y guarda.")
@@ -764,14 +725,23 @@ class FormTab(BaseTab):
             self.show_warning("Eliminar", "Selecciona un registro de la tabla")
             return
         
-        item = self.tree.item(selection[0])
-        values = item['values']
+        # El iid ES el ID completo
+        id_completo = selection[0]
         
-        if not values:
+        # Buscar registro para mostrar confirmación
+        registros = cargar_registros()
+        registro = None
+        for reg in registros:
+            if reg.get("id") == id_completo:
+                registro = reg
+                break
+        
+        if not registro:
+            self.show_error("Error", "No se encontró el registro")
             return
         
-        nombre = values[1]
-        apellido = values[2]
+        nombre = registro.get("nombre", "")
+        apellido = registro.get("apellido", "")
         
         if not self.ask_yes_no(
             "Confirmar eliminación",
@@ -779,13 +749,10 @@ class FormTab(BaseTab):
         ):
             return
         
-        # Buscar y eliminar por ID
-        id_corto = values[0]
-        registros = cargar_registros()
-        
+        # Eliminar por ID exacto
         registros_filtrados = [
             reg for reg in registros 
-            if not reg.get("id", "").startswith(id_corto)
+            if reg.get("id") != id_completo
         ]
         
         from database.csv_handler import guardar_todos_registros
@@ -805,16 +772,14 @@ class FormTab(BaseTab):
             self.show_warning("Certificado", "Selecciona un registro de la tabla")
             return
         
-        # Obtener ID y buscar registro completo
-        item = self.tree.item(selection[0])
-        values = item['values']
-        id_corto = values[0]
+        # El iid ES el ID completo
+        id_completo = selection[0]
         
+        # Buscar registro por ID exacto
         registros = cargar_registros()
-        
         registro = None
         for reg in registros:
-            if reg.get("id", "").startswith(id_corto):
+            if reg.get("id") == id_completo:
                 registro = reg
                 break
         
@@ -838,9 +803,22 @@ class FormTab(BaseTab):
         # Cargar registros desde CSV
         registros = cargar_registros()
         
-        # Poblar tabla
+        # Poblar tabla (GUARDAR ID OCULTO EN iid)
         for reg in registros:
-            self._insertar_en_tabla(reg)
+            # Usar el ID completo como iid (identificador interno)
+            id_completo = reg.get("id", "")
+            
+            # Mostrar datos en la tabla (sin columna ID)
+            self.tree.insert("", tk.END, iid=id_completo, values=(
+                reg.get("nombre", ""),
+                reg.get("apellido", ""),
+                reg.get("dni", ""),
+                reg.get("legajo", ""),  # NUEVO: Mostrar legajo
+                reg.get("materia", ""),
+                reg.get("profesor", ""),
+                reg.get("turno", ""),
+                reg.get("anio", "")
+            ))
 
     # ============= NUEVOS MÉTODOS =============
 
@@ -1049,16 +1027,14 @@ class FormTab(BaseTab):
             self.show_warning("Sin selección", "Selecciona un registro de la tabla")
             return
         
-        iid = sel[0]
-        item = self.tree.item(iid)
-        values = item['values']
-        id_corto = values[0]
+        # El iid ES el ID completo
+        id_completo = sel[0]
         
-        # Buscar registro completo
+        # Buscar registro por ID exacto
         registros = cargar_registros()
         registro = None
         for r in registros:
-            if r.get("id", "").startswith(id_corto):
+            if r.get("id") == id_completo:
                 registro = r
                 break
         
