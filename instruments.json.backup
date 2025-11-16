@@ -1,0 +1,1080 @@
+{
+  "Técnica Instrumental y Lectura a Primera Vista 1: Piano": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Anabella Russo": {},
+      "Nadia Montes": {},
+      "Arturo Prieto": {},
+      "Cristian Tarifa": {},
+      "Luis Benavidez": {},
+      "David Benitez": {},
+      "Milagros Bosso Gallai": {},
+      "Lujan Issa": {},
+      "Javier Guantay": {}
+    },
+    "commissions": {
+      "18": 4,
+      "1": 4,
+      "2": 4,
+      "3": 4,
+      "4": 4,
+      "B": 4,
+      "7": 4,
+      "C": 4,
+      "6": 4,
+      "5": 4,
+      "14": 4,
+      "15": 4,
+      "16": 4,
+      "17": 4,
+      "A": 4,
+      "9": 4,
+      "13": 4,
+      "E": 4
+    }
+  },
+  "Piano": {
+    "type": "individual",
+    "description": "Listado de disponibilidad/turnos de docentes de Piano (sin comisiones en el CSV).",
+    "years": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "allow_over": false,
+    "professors": {
+      "Anabella Russo": {
+        "hours": "8hs",
+        "turnos": [
+          "Mañana"
+        ]
+      },
+      "Nadia Montes": {
+        "hours": "12hs",
+        "turnos": [
+          "Mañana",
+          "Tarde",
+          "Vespertino"
+        ]
+      },
+      "Arturo Prieto": {
+        "hours": "12hs",
+        "turnos": [
+          "Tarde",
+          "Vespertino"
+        ]
+      },
+      "Cristian Tarifa": {
+        "hours": "8hs",
+        "turnos": [
+          "Mañana",
+          "Tarde"
+        ]
+      },
+      "Luis Benavidez": {
+        "hours": "4hs",
+        "turnos": [
+          "Mañana",
+          "Tarde"
+        ]
+      },
+      "David Benitez": {
+        "hours": "8hs",
+        "turnos": []
+      },
+      "Milagros Bosso Gallai": {
+        "hours": "8hs",
+        "turnos": [
+          "Vespertino"
+        ]
+      },
+      "Lujan Issa": {
+        "hours": "8hs",
+        "turnos": [
+          "Tarde"
+        ]
+      },
+      "Javier Guantay": {
+        "hours": "4hs",
+        "turnos": [
+          "Tarde"
+        ]
+      },
+      "Ariel García": {
+        "hours": "4hs",
+        "turnos": []
+      }
+    },
+    "commissions": {}
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Guitarra": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Juan Castro": {},
+      "Guillermo Rubelt": {},
+      "Diego Vazquez": {},
+      "Lourdes Aramburu": {},
+      "Salvador Rueda": {},
+      "Mariana Marquez": {},
+      "Cristian Tapia": {}
+    },
+    "commissions": {
+      "A": 4,
+      "1": 4,
+      "2": 4,
+      "B": 4,
+      "9": 4,
+      "6": 4,
+      "7": 4,
+      "4": 4,
+      "5": 4,
+      "C": 4,
+      "D": 4,
+      "8": 4,
+      "E": 4
+    }
+  },
+  "Técnica Vocal y Lectura a Primera Vista 1: Canto": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Carlos Yudi": {},
+      "Daiana Guardatti": {},
+      "Ana Issa": {}
+    },
+    "commissions": {
+      "A": 4,
+      "1": 4,
+      "2": 4,
+      "3": 4,
+      "4": 4,
+      "5": 4,
+      "6": 4,
+      "B": 4,
+      "C": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Percusión": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Cristian Herrera": {},
+      "Sergio Girón": {}
+    },
+    "commissions": {
+      "A": 4,
+      "1": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Flauta Dulce": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Silvina Añez": {}
+    },
+    "commissions": {
+      "C": 4,
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Flauta Traversa": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Julio Quinteros": {},
+      "Federico Camerdelli": {}
+    },
+    "commissions": {
+      "A": 4,
+      "1": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Clarinete": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Alberto Fernandez": {}
+    },
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1 Oboe": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Alejandra Barreto": {}
+    },
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Saxofón": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Mariana Kortsarz": {}
+    },
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Trompeta": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Franco Abán": {}
+    },
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Trombón": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Miguel Gimenez": {}
+    },
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Corno": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Miguel Gimenez": {}
+    },
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Acordeón": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Dante Funes": {}
+    },
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Bandoneón": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "German Mercado": {}
+    },
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Violín": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Nicolas Atampiz": {}
+    },
+    "commissions": {
+      "A": 4,
+      "1": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Viola": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Tetyana Larina": {}
+    },
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Violoncello": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Eugenio Bucello": {}
+    },
+    "commissions": {
+      "A": 4,
+      "1": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 1: Contrabajo": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": false,
+    "professors": {
+      "Juan Aguirre Sabao": {}
+    },
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Piano": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "E": 4,
+      "B": 4,
+      "D": 4,
+      "4": 4,
+      "C": 4,
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Guitarra": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4,
+      "1": 4,
+      "C": 4,
+      "2": 4,
+      "E": 4,
+      "D": 4,
+      "B": 4
+    }
+  },
+  "Técnica Vocal y Lectura a Primera Vista 2: Canto": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4,
+      "1": 4,
+      "2": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Percusión": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Flauta Dulce": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Flauta Traversa": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Clarinete": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Oboe": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Saxo": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Trompeta": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Trombón": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Acordeón a Piano": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Bandoneón": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Violín": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4,
+      "1": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Viola": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Violoncello": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Técnica Instrumental y Lectura a Primera Vista 2: Contrabajo": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 1: Piano": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "E": 4,
+      "2": 4,
+      "A": 4,
+      "B": 4,
+      "D": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 1: Guitarra": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "D": 4,
+      "C": 4,
+      "B": 4,
+      "A": 4
+    }
+  },
+  "Taller de Repertrio y Técnica Vocal 1: Canto": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4,
+      "1": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 1: Percusión": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 1: Flauta Dulce": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 1: Clarinete": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 1: Violín": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4,
+      "1": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 1: Acordeón a Piano": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 1: Violoncello": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 1: Contrabajo": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 2: Piano": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4,
+      "B": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 2: Guitarra": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "C": 4,
+      "A": 4,
+      "1": 4
+    }
+  },
+  "Taller de Repertrio y Técnica Vocal 2: Canto": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4,
+      "1": 4,
+      "2": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 2: Percusión": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 2: Flauta Dulce": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A/B": 4,
+      "A": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 2: Clarinete": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 2: Violín": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4,
+      "1": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 2: Viola": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 2: Violoncello": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Taller de Repertorio y técnica Instrumental 2: Contrabajo": {
+    "type": "individual",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": false,
+    "professors": {},
+    "commissions": {
+      "A": 4
+    }
+  },
+  "Gramática del lenguaje musical 1": {
+    "type": "group",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": true,
+    "professors": {
+      "Juan Pablo Rosado": {},
+      "Sergio Tacuri": {},
+      "Mónica Ferri": {},
+      "David Durgale": {}
+    },
+    "commissions": {}
+  },
+  "Taller de práctica coral 1": {
+    "type": "group",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": true,
+    "professors": {
+      "Ana Issa": {},
+      "Mercedes Nieva": {},
+      "Mónica Ferri": {}
+    },
+    "commissions": {}
+  },
+  "Técnica Corporal 1": {
+    "type": "group",
+    "description": "",
+    "years": [
+      1
+    ],
+    "allow_over": true,
+    "professors": {
+      "Carla Mana": {},
+      "Rita Corces": {},
+      "Mónica Yapura": {},
+      "Mercedes Nieva": {}
+    },
+    "commissions": {}
+  },
+  "Gramática del lenguaje musical 2": {
+    "type": "group",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": true,
+    "professors": {
+      "Pablo Araya": {},
+      "Mónica Ferri": {}
+    },
+    "commissions": {}
+  },
+  "Taller de práctica coral 2": {
+    "type": "group",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": true,
+    "professors": {
+      "Luis Benavidez": {},
+      "Mónica Ferri": {},
+      "David Durgales": {}
+    },
+    "commissions": {}
+  },
+  "Técnica Corporal 2": {
+    "type": "group",
+    "description": "",
+    "years": [
+      2
+    ],
+    "allow_over": true,
+    "professors": {
+      "Mercedes Nieva": {}
+    },
+    "commissions": {}
+  },
+  "Gramática del lenguaje musical 3": {
+    "type": "group",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": true,
+    "professors": {
+      "Pedro Viltes": {},
+      "Mónica Ferri": {}
+    },
+    "commissions": {}
+  },
+  "Armonía aplicada y técnicas de análisis 1": {
+    "type": "group",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": true,
+    "professors": {
+      "Germán Mercado": {}
+    },
+    "commissions": {}
+  },
+  "Estética general": {
+    "type": "group",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": true,
+    "professors": {
+      "Martín Velasco": {}
+    },
+    "commissions": {}
+  },
+  "Movimientos, escuelas y tendencias 1": {
+    "type": "group",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": true,
+    "professors": {
+      "Silvina Añez": {}
+    },
+    "commissions": {}
+  },
+  "Taller de práctica y ensamble 1": {
+    "type": "group",
+    "description": "",
+    "years": [
+      3
+    ],
+    "allow_over": true,
+    "professors": {
+      "Luciano Miranda": {},
+      "Rita Corces": {}
+    },
+    "commissions": {}
+  },
+  "Gramática del lenguaje musical 4": {
+    "type": "group",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": true,
+    "professors": {
+      "Aarón Torres": {}
+    },
+    "commissions": {}
+  },
+  "Armonía aplicada y técnicas de análisis 2": {
+    "type": "group",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": true,
+    "professors": {
+      "Cristian Tarifa": {}
+    },
+    "commissions": {}
+  },
+  "Movimientos, escuelas y tendencias 2": {
+    "type": "group",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": true,
+    "professors": {
+      "Silvina Añez": {}
+    },
+    "commissions": {}
+  },
+  "Taller de práctica y ensamble 2": {
+    "type": "group",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": true,
+    "professors": {
+      "Florencia Gálvez": {}
+    },
+    "commissions": {}
+  },
+  "Proyecto Final": {
+    "type": "group",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": true,
+    "professors": {
+      "Guillermo Rubelt": {}
+    },
+    "commissions": {}
+  },
+  "Técnica de improvisación": {
+    "type": "group",
+    "description": "",
+    "years": [
+      4
+    ],
+    "allow_over": true,
+    "professors": {
+      "Walter Guzmán": {}
+    },
+    "commissions": {}
+  }
+}
