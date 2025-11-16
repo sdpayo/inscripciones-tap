@@ -50,7 +50,9 @@ DEFAULT_CONFIG = {
         "check_cupos": True,
         "require_seguro_escolar": True,
         "auto_backup": True,
-        "backup_interval_days": 7
+        "backup_interval_days": 7,
+        "debug": False,
+        "auto_refresh": True
     },
     "ui": {
         "theme": "clam",

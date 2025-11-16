@@ -119,12 +119,46 @@ class ConfigTab(BaseTab):
         ).grid(row=row, column=1, sticky="w", padx=5, pady=5)
         row += 1
         
+        # Botón para aplicar tema inmediatamente
+        ttk.Button(
+            app_frame,
+            text="🎨 Aplicar Tema Ahora",
+            command=self._apply_theme_now
+        ).grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        row += 1
+        
         ttk.Label(
             app_frame,
-            text="(Requiere reiniciar la aplicación)",
+            text="(Guardá los cambios para hacerlo permanente)",
             font=("Helvetica", 8),
             foreground="gray"
         ).grid(row=row, column=1, sticky="w", padx=5)
+        row += 1
+        
+        # === DEBUG MODE ===
+        ttk.Label(app_frame, text="Modo Debug:").grid(
+            row=row, column=0, sticky="e", padx=5, pady=5
+        )
+        self.debug_var = tk.BooleanVar()
+        self.debug_var.set(settings.get("app.debug", False))
+        ttk.Checkbutton(
+            app_frame,
+            text="Activar logs detallados",
+            variable=self.debug_var
+        ).grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        row += 1
+        
+        # === AUTO-REFRESH ===
+        ttk.Label(app_frame, text="Auto-refresh:").grid(
+            row=row, column=0, sticky="e", padx=5, pady=5
+        )
+        self.auto_refresh_var = tk.BooleanVar()
+        self.auto_refresh_var.set(settings.get("app.auto_refresh", True))
+        ttk.Checkbutton(
+            app_frame,
+            text="Refrescar tablas automáticamente",
+            variable=self.auto_refresh_var
+        ).grid(row=row, column=1, sticky="w", padx=5, pady=5)
         row += 1
         
         # === SEPARADOR ===
@@ -165,19 +199,48 @@ class ConfigTab(BaseTab):
 
     def _save_app_config(self):
         """Guarda configuración general de la app."""
-        settings.set("app.check_cupos", self.check_cupos_var.get())
-        settings.set("app.require_seguro_escolar", self.require_seguro_var.get())
-        settings.set("app.auto_backup", self.auto_backup_var.get())
-        
         try:
-            backup_days = int(self.backup_interval_var.get())
-            settings.set("app.backup_interval_days", backup_days)
-        except ValueError:
-            pass
-        
-        settings.set("ui.theme", self.theme_var.get())
-        
-        self.show_info("Configuración", "Configuración guardada correctamente.")
+            # Guardar configuraciones básicas
+            if hasattr(self, 'check_cupos_var'):
+                settings.set("app.check_cupos", self.check_cupos_var.get())
+            
+            if hasattr(self, 'require_seguro_var'):
+                settings.set("app.require_seguro_escolar", self.require_seguro_var.get())
+            
+            if hasattr(self, 'auto_backup_var'):
+                settings.set("app.auto_backup", self.auto_backup_var.get())
+            
+            if hasattr(self, 'backup_interval_var'):
+                try:
+                    backup_days = int(self.backup_interval_var.get())
+                    settings.set("app.backup_interval_days", backup_days)
+                except ValueError:
+                    pass
+            
+            # Guardar tema
+            if hasattr(self, 'theme_var'):
+                nuevo_tema = self.theme_var.get()
+                settings.set("ui.theme", nuevo_tema)
+                
+                # Aplicar tema inmediatamente
+                try:
+                    style = ttk.Style()
+                    style.theme_use(nuevo_tema)
+                except Exception as e:
+                    print(f"[WARN] No se pudo aplicar tema: {e}")
+            
+            # Guardar debug mode
+            if hasattr(self, 'debug_var'):
+                settings.set("app.debug", self.debug_var.get())
+            
+            # Guardar auto-refresh
+            if hasattr(self, 'auto_refresh_var'):
+                settings.set("app.auto_refresh", self.auto_refresh_var.get())
+            
+            self.show_info("Guardado", "Configuración de aplicación guardada")
+            
+        except Exception as e:
+            self.show_error("Error", f"No se pudo guardar la configuración: {e}")
 
     def _restore_defaults(self):
         """Restaura valores por defecto."""
@@ -193,8 +256,22 @@ class ConfigTab(BaseTab):
         self.auto_backup_var.set(True)
         self.backup_interval_var.set("7")
         self.theme_var.set("clam")
+        if hasattr(self, 'debug_var'):
+            self.debug_var.set(False)
+        if hasattr(self, 'auto_refresh_var'):
+            self.auto_refresh_var.set(True)
         
         self._save_app_config()
+
+    def _apply_theme_now(self):
+        """Aplica el tema seleccionado inmediatamente sin guardar."""
+        nuevo_tema = self.theme_var.get()
+        try:
+            style = ttk.Style()
+            style.theme_use(nuevo_tema)
+            self.show_info("Tema aplicado", f"Tema '{nuevo_tema}' aplicado temporalmente.\nGuardá los cambios para hacerlo permanente.")
+        except Exception as e:
+            self.show_error("Error", f"No se pudo aplicar el tema: {e}")
 
     def _build_smtp_config(self):
         """Sección de configuración SMTP."""
@@ -524,12 +601,6 @@ class ConfigTab(BaseTab):
         threading.Thread(target=worker, daemon=True).start()
     
     # ========== Handlers App Config ==========
-    
-    def _save_app_config(self):
-        """Guarda config general de la app."""
-        settings.set("app.debug", self.debug_var.get())
-        settings.set("app.check_cupos", self.check_cupos_var.get())
-        settings.set("app.require_seguro_escolar", self.require_seguro_var.get())
     
     def _save_theme(self):
         """Guarda tema seleccionado."""
