@@ -5,7 +5,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from pathlib import Path
 from datetime import datetime
-from config.settings import settings, CERTIFICATES_DIR
+from config.settings import settings, CERTIFICATES_DIR, BASE_DIR
 
 def generar_certificado_pdf(registro, output_path=None):
     """
@@ -23,13 +23,13 @@ def generar_certificado_pdf(registro, output_path=None):
         
         # Generar nombre de archivo
         if not output_path:
-            nombre = registro.get("apellido", "").replace(" ", "_")
-            apellido = registro.get("nombre", "").replace(" ", "_")
+            apellido = registro.get("apellido", "").replace(" ", "_")
+            nombre = registro.get("nombre", "").replace(" ", "_")
             legajo = registro.get("legajo", registro.get("dni", ""))
             fecha = datetime.now().strftime("%Y%m%d")
             
             CERTIFICATES_DIR.mkdir(parents=True, exist_ok=True)
-            output_path = CERTIFICATES_DIR / f"certificado_{nombre}_{apellido}_{legajo}_{fecha}.pdf"
+            output_path = CERTIFICATES_DIR / f"certificado_{apellido}_{nombre}_{legajo}_{fecha}.pdf"
         
         # Crear PDF
         c = canvas.Canvas(str(output_path), pagesize=A4)
@@ -48,10 +48,9 @@ def generar_certificado_pdf(registro, output_path=None):
         if not logo_path:
             # Buscar logo en varias ubicaciones posibles
             possible_logos = [
-                Path("ESM_Alta.jpg"),
-                Path("data/ESM_Alta.jpg"),
-                Path("assets/ESM_Alta.jpg"),
-                CERTIFICATES_DIR.parent / "ESM_Alta.jpg"
+                BASE_DIR / "ESM_Alta.jpg",
+                BASE_DIR / "data" / "ESM_Alta.jpg",
+                BASE_DIR / "assets" / "ESM_Alta.jpg"
             ]
             for p in possible_logos:
                 if p.exists():
@@ -237,10 +236,9 @@ def generar_certificado_pdf(registro, output_path=None):
         if not firma_path:
             # Buscar firma en varias ubicaciones
             possible_firmas = [
-                Path("firma.png"),
-                Path("data/firma.png"),
-                Path("assets/firma.png"),
-                CERTIFICATES_DIR.parent / "firma.png"
+                BASE_DIR / "firma.png",
+                BASE_DIR / "data" / "firma.png",
+                BASE_DIR / "assets" / "firma.png"
             ]
             for p in possible_firmas:
                 if p.exists():
