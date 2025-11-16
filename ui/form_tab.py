@@ -627,28 +627,52 @@ class FormTab(BaseTab):
         self.observaciones_text.delete("1.0", tk.END)
 
     def _filtrar_tabla(self):
-        """Filtra la tabla según el texto de búsqueda."""
-        search_text = self.search_var.get().lower()
+        """Filtra la tabla según el texto de búsqueda en TODOS los campos."""
+        search_text = self.search_var.get().lower().strip()
         
         # Limpiar tabla
         for item in self.tree.get_children():
             self.tree.delete(item)
         
-        # Recargar registros filtrados
+        # Recargar registros
         registros = cargar_registros()
         
         for reg in registros:
-            # Filtrar por texto en nombre, apellido o DNI
-            nombre = reg.get("nombre", "").lower()
-            apellido = reg.get("apellido", "").lower()
-            dni = reg.get("dni", "").lower()
-            materia = reg.get("materia", "").lower()
+            # Si no hay búsqueda, mostrar todo
+            if not search_text:
+                self.tree.insert("", tk.END, values=(
+                    reg.get("id", "")[:8],
+                    reg.get("nombre", ""),
+                    reg.get("apellido", ""),
+                    reg.get("dni", ""),
+                    reg.get("materia", ""),
+                    reg.get("profesor", ""),
+                    reg.get("turno", ""),
+                    reg.get("anio", "")
+                ))
+                continue
             
-            if (search_text in nombre or 
-                search_text in apellido or 
-                search_text in dni or
-                search_text in materia):
-                
+            # Buscar en TODOS los campos del registro
+            campos_a_buscar = [
+                reg.get("nombre", ""),
+                reg.get("apellido", ""),
+                reg.get("dni", ""),
+                reg.get("legajo", ""),
+                reg.get("email", ""),
+                reg.get("telefono", ""),
+                reg.get("materia", ""),
+                reg.get("profesor", ""),
+                reg.get("comision", ""),
+                reg.get("turno", ""),
+                reg.get("anio", ""),
+                reg.get("direccion", ""),
+                reg.get("observaciones", ""),
+            ]
+            
+            # Convertir todos a minúsculas y buscar coincidencia
+            texto_completo = " ".join(str(campo).lower() for campo in campos_a_buscar)
+            
+            if search_text in texto_completo:
                 self.tree.insert("", tk.END, values=(
                     reg.get("id", "")[:8],
                     reg.get("nombre", ""),
