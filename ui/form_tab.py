@@ -627,38 +627,66 @@ class FormTab(BaseTab):
         self.observaciones_text.delete("1.0", tk.END)
 
     def _filtrar_tabla(self):
-        """Filtra la tabla según el texto de búsqueda."""
-        search_text = self.search_var.get().lower()
+        """Filtra la tabla según el texto de búsqueda (busca en todos los campos)."""
+        search_text = self.search_var.get().lower().strip()
         
         # Limpiar tabla
         for item in self.tree.get_children():
             self.tree.delete(item)
         
-        # Recargar registros filtrados
+        # Cargar registros
         registros = cargar_registros()
         
+        # Si no hay búsqueda, mostrar todos
+        if not search_text:
+            for reg in registros:
+                self._insertar_en_tabla(reg)
+            return
+        
+        # Dividir búsqueda en palabras (búsqueda AND)
+        palabras = search_text.split()
+        
+        # Filtrar registros
         for reg in registros:
-            # Filtrar por texto en nombre, apellido o DNI
-            nombre = reg.get("nombre", "").lower()
-            apellido = reg.get("apellido", "").lower()
-            dni = reg.get("dni", "").lower()
-            materia = reg.get("materia", "").lower()
+            # Campos donde buscar (convertir a string y minúsculas)
+            campos_busqueda = [
+                reg.get("nombre", ""),
+                reg.get("apellido", ""),
+                reg.get("dni", ""),
+                reg.get("legajo", ""),
+                reg.get("email", ""),
+                reg.get("telefono", ""),
+                reg.get("direccion", ""),
+                reg.get("materia", ""),
+                reg.get("profesor", ""),
+                reg.get("comision", ""),
+                reg.get("turno", ""),
+                reg.get("anio", ""),
+                reg.get("observaciones", ""),
+                reg.get("nombre_padre", ""),
+                reg.get("nombre_madre", "")
+            ]
             
-            if (search_text in nombre or 
-                search_text in apellido or 
-                search_text in dni or
-                search_text in materia):
-                
-                self.tree.insert("", tk.END, values=(
-                    reg.get("id", "")[:8],
-                    reg.get("nombre", ""),
-                    reg.get("apellido", ""),
-                    reg.get("dni", ""),
-                    reg.get("materia", ""),
-                    reg.get("profesor", ""),
-                    reg.get("turno", ""),
-                    reg.get("anio", "")
-                ))
+            # Crear texto completo del registro
+            texto_completo = " ".join(str(c).lower() for c in campos_busqueda)
+            
+            # Verificar que TODAS las palabras estén presentes (AND)
+            if all(palabra in texto_completo for palabra in palabras):
+                self._insertar_en_tabla(reg)
+
+    def _insertar_en_tabla(self, reg):
+        """Helper para insertar registro en tabla."""
+        id_completo = reg.get("id", "")
+        self.tree.insert("", tk.END, iid=id_completo[:8], values=(
+            id_completo[:8],
+            reg.get("nombre", ""),
+            reg.get("apellido", ""),
+            reg.get("dni", ""),
+            reg.get("materia", ""),
+            reg.get("profesor", ""),
+            reg.get("turno", ""),
+            reg.get("anio", "")
+        ))
 
     def _editar_seleccionado(self):
         """Carga el registro seleccionado en el formulario para editar."""
@@ -793,16 +821,7 @@ class FormTab(BaseTab):
         
         # Poblar tabla
         for reg in registros:
-            self.tree.insert("", tk.END, values=(
-                reg.get("id", "")[:8],
-                reg.get("nombre", ""),
-                reg.get("apellido", ""),
-                reg.get("dni", ""),
-                reg.get("materia", ""),
-                reg.get("profesor", ""),
-                reg.get("turno", ""),
-                reg.get("anio", "")
-            ))
+            self._insertar_en_tabla(reg)
 
     # ============= NUEVOS MÉTODOS =============
 
