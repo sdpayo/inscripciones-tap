@@ -38,300 +38,210 @@ class FormTab(BaseTab):
     """Pestaña de formulario de inscripción."""
                 
     def _build_ui(self):
-        """Construye la interfaz del formulario con layout de 2 columnas."""
-        # Contenedor principal con dos paneles
-        main_paned = ttk.PanedWindow(self.frame, orient=tk.HORIZONTAL)
-        main_paned.pack(fill=tk.BOTH, expand=True)
-    
-        # === PANEL IZQUIERDO: FORMULARIO ===
-        left_panel = ttk.Frame(main_paned)
-        main_paned.add(left_panel, weight=1)
-    
-        # Contenedor con scroll para el formulario
-        canvas = tk.Canvas(left_panel)
-        scrollbar = ttk.Scrollbar(left_panel, orient="vertical", command=canvas.yview)
-        self.form_container = ttk.Frame(canvas)
-    
-        self.form_container.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-    
-        canvas.create_window((0, 0), window=self.form_container, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-    
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-    
-        # Construir secciones del formulario
-        self._build_datos_personales()
-        self._build_datos_contacto()
-        self._build_datos_responsables()
-        self._build_otros_datos()
-        self._build_inscripcion()
-        self._build_buttons()
-    
+        """Construye la interfaz del formulario SIN scroll."""
+        # Contenedor principal
+        main_container = ttk.PanedWindow(self.frame, orient=tk.HORIZONTAL)
+        main_container.pack(fill=tk.BOTH, expand=True)
+        
+        # === PANEL IZQUIERDO: FORMULARIO (SIN CANVAS NI SCROLLBAR) ===
+        left_panel = ttk.Frame(main_container)
+        main_container.add(left_panel, weight=1)
+        
+        # Contenedor del formulario con 2 columnas
+        form_container = ttk.Frame(left_panel)
+        form_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Columnas
+        left_column = ttk.Frame(form_container)
+        left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+        
+        right_column = ttk.Frame(form_container)
+        right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
+        
+        # Construir secciones en columnas
+        self._build_datos_estudiante_compact(left_column)
+        self._build_datos_responsable_compact(right_column)
+        self._build_datos_inscripcion_compact(left_column)
+        self._build_datos_materia_full_width(form_container)
+        
+        # Botones abajo
+        self._build_buttons(left_panel)
+        
         # === PANEL DERECHO: TABLA ===
-        right_panel = ttk.Frame(main_paned)
-        main_paned.add(right_panel, weight=1)
-    
-        # Llamar al método _build_table que ya existe
+        right_panel = ttk.Frame(main_container)
+        main_container.add(right_panel, weight=1)
         self._build_table(right_panel)
 
-    def _build_datos_personales(self):
-        """Construye sección de Datos Personales."""
-        personales_frame = ttk.LabelFrame(self.form_container, text="Datos Personales", padding=10)
-        personales_frame.pack(fill=tk.X, padx=10, pady=10)
+    def _build_datos_estudiante_compact(self, parent):
+        """Construye sección compacta de datos del estudiante."""
+        frame = ttk.LabelFrame(parent, text="Datos del Estudiante", padding=5)
+        frame.pack(fill=tk.X, pady=(0, 5))
         
         self.entries = {}
-        row = 0
         
         # Nombre
-        ttk.Label(personales_frame, text="Nombre:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.entries["nombre"] = ttk.Entry(personales_frame, width=30)
-        self.entries["nombre"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        ttk.Label(frame, text="Nombre:").grid(row=0, column=0, sticky="e", padx=2, pady=2)
+        self.entries["nombre"] = ttk.Entry(frame, width=25)
+        self.entries["nombre"].grid(row=0, column=1, sticky="ew", padx=2, pady=2)
         
         # Apellido
-        ttk.Label(personales_frame, text="Apellido:*").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.entries["apellido"] = ttk.Entry(personales_frame, width=30)
-        self.entries["apellido"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
-        row += 1
+        ttk.Label(frame, text="Apellido:").grid(row=1, column=0, sticky="e", padx=2, pady=2)
+        self.entries["apellido"] = ttk.Entry(frame, width=25)
+        self.entries["apellido"].grid(row=1, column=1, sticky="ew", padx=2, pady=2)
         
         # DNI
-        ttk.Label(personales_frame, text="DNI:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.entries["dni"] = ttk.Entry(personales_frame, width=15)
-        self.entries["dni"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
-        
-        # Fecha de Nacimiento
-        ttk.Label(personales_frame, text="Fecha Nacimiento:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.entries["fecha_nacimiento"] = ttk.Entry(personales_frame, width=15)
-        self.entries["fecha_nacimiento"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
-        row += 1
-        
-        # Edad
-        ttk.Label(personales_frame, text="Edad:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.entries["edad"] = ttk.Entry(personales_frame, width=10)
-        self.entries["edad"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        ttk.Label(frame, text="DNI:").grid(row=2, column=0, sticky="e", padx=2, pady=2)
+        self.entries["dni"] = ttk.Entry(frame, width=25)
+        self.entries["dni"].grid(row=2, column=1, sticky="ew", padx=2, pady=2)
         
         # Legajo
-        ttk.Label(personales_frame, text="Legajo:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.entries["legajo"] = ttk.Entry(personales_frame, width=15)
-        self.entries["legajo"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
-
-    def _build_datos_contacto(self):
-        """Construye sección de Datos de Contacto."""
-        contacto_frame = ttk.LabelFrame(self.form_container, text="Datos de Contacto", padding=10)
-        contacto_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        row = 0
-        
-        # Dirección
-        ttk.Label(contacto_frame, text="Dirección:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.entries["direccion"] = ttk.Entry(contacto_frame, width=50)
-        self.entries["direccion"].grid(row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5)
-        row += 1
+        ttk.Label(frame, text="Legajo:").grid(row=3, column=0, sticky="e", padx=2, pady=2)
+        self.entries["legajo"] = ttk.Entry(frame, width=25)
+        self.entries["legajo"].grid(row=3, column=1, sticky="ew", padx=2, pady=2)
         
         # Teléfono
-        ttk.Label(contacto_frame, text="Teléfono:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.entries["telefono"] = ttk.Entry(contacto_frame, width=20)
-        self.entries["telefono"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        ttk.Label(frame, text="Teléfono:").grid(row=4, column=0, sticky="e", padx=2, pady=2)
+        self.entries["telefono"] = ttk.Entry(frame, width=25)
+        self.entries["telefono"].grid(row=4, column=1, sticky="ew", padx=2, pady=2)
         
-        # Email
-        ttk.Label(contacto_frame, text="Email:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.entries["email"] = ttk.Entry(contacto_frame, width=30)
-        self.entries["email"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
+        # Edad
+        ttk.Label(frame, text="Edad:").grid(row=5, column=0, sticky="e", padx=2, pady=2)
+        self.entries["edad"] = ttk.Entry(frame, width=10)
+        self.entries["edad"].grid(row=5, column=1, sticky="w", padx=2, pady=2)
+        
+        # Domicilio
+        ttk.Label(frame, text="Domicilio:").grid(row=6, column=0, sticky="e", padx=2, pady=2)
+        self.entries["direccion"] = ttk.Entry(frame, width=25)
+        self.entries["direccion"].grid(row=6, column=1, sticky="ew", padx=2, pady=2)
+        
+        # Mail
+        ttk.Label(frame, text="Mail:").grid(row=7, column=0, sticky="e", padx=2, pady=2)
+        self.entries["email"] = ttk.Entry(frame, width=25)
+        self.entries["email"].grid(row=7, column=1, sticky="ew", padx=2, pady=2)
+        
+        # Fecha de Nacimiento
+        ttk.Label(frame, text="F. Nacimiento:").grid(row=8, column=0, sticky="e", padx=2, pady=2)
+        self.entries["fecha_nacimiento"] = ttk.Entry(frame, width=25)
+        self.entries["fecha_nacimiento"].grid(row=8, column=1, sticky="ew", padx=2, pady=2)
+        
+        frame.columnconfigure(1, weight=1)
 
-    def _build_datos_responsables(self):
-        """Construye sección de Datos de Responsables."""
-        responsables_frame = ttk.LabelFrame(self.form_container, text="Datos de Responsables", padding=10)
-        responsables_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        row = 0
+    def _build_datos_responsable_compact(self, parent):
+        """Construye sección compacta de responsables/tutores."""
+        frame = ttk.LabelFrame(parent, text="Datos Responsable o Tutor/a", padding=5)
+        frame.pack(fill=tk.X, pady=(0, 5))
         
         # Nombre Padre
-        ttk.Label(responsables_frame, text="Nombre Padre:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.entries["nombre_padre"] = ttk.Entry(responsables_frame, width=30)
-        self.entries["nombre_padre"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        ttk.Label(frame, text="Nombre-Padre:").grid(row=0, column=0, sticky="e", padx=2, pady=2)
+        self.entries["nombre_padre"] = ttk.Entry(frame, width=25)
+        self.entries["nombre_padre"].grid(row=0, column=1, sticky="ew", padx=2, pady=2)
         
         # Nombre Madre
-        ttk.Label(responsables_frame, text="Nombre Madre:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.entries["nombre_madre"] = ttk.Entry(responsables_frame, width=30)
-        self.entries["nombre_madre"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
-        row += 1
+        ttk.Label(frame, text="Nombre-Madre:").grid(row=1, column=0, sticky="e", padx=2, pady=2)
+        self.entries["nombre_madre"] = ttk.Entry(frame, width=25)
+        self.entries["nombre_madre"].grid(row=1, column=1, sticky="ew", padx=2, pady=2)
         
-        # Teléfono Emergencia
-        ttk.Label(responsables_frame, text="Tel. Emergencia:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.entries["telefono_emergencia"] = ttk.Entry(responsables_frame, width=20)
-        self.entries["telefono_emergencia"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        # Contacto Tutor
+        ttk.Label(frame, text="Contacto Tutor:").grid(row=2, column=0, sticky="e", padx=2, pady=2)
+        self.entries["telefono_emergencia"] = ttk.Entry(frame, width=25)
+        self.entries["telefono_emergencia"].grid(row=2, column=1, sticky="ew", padx=2, pady=2)
+        
+        frame.columnconfigure(1, weight=1)
 
-    def _build_otros_datos(self):
-        """Construye sección de Otros Datos."""
-        otros_frame = ttk.LabelFrame(self.form_container, text="Otros Datos", padding=10)
-        otros_frame.pack(fill=tk.X, padx=10, pady=10)
+    def _build_datos_inscripcion_compact(self, parent):
+        """Construye sección compacta de datos de inscripción."""
+        frame = ttk.LabelFrame(parent, text="Datos de Inscripción", padding=5)
+        frame.pack(fill=tk.X, pady=(0, 5))
         
-        row = 0
-        
-        # SAETA
-        ttk.Label(otros_frame, text="SAETA:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        # Fila 1: SAETA y Obra Social
+        ttk.Label(frame, text="SAETA:").grid(row=0, column=0, sticky="e", padx=2, pady=2)
         self.saeta_var = tk.StringVar(value="No")
-        ttk.Combobox(
-            otros_frame,
-            textvariable=self.saeta_var,
-            values=["No", "Sí"],
-            state="readonly",
-            width=15
-        ).grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        ttk.Combobox(frame, textvariable=self.saeta_var, values=["No", "Sí"], 
+                     state="readonly", width=10).grid(row=0, column=1, sticky="w", padx=2, pady=2)
         
-        # Obra Social
-        ttk.Label(otros_frame, text="Obra Social:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.entries["obra_social"] = ttk.Entry(otros_frame, width=30)
-        self.entries["obra_social"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
-        row += 1
+        ttk.Label(frame, text="Obra Social:").grid(row=0, column=2, sticky="e", padx=2, pady=2)
+        self.entries["obra_social"] = ttk.Entry(frame, width=12)
+        self.entries["obra_social"].grid(row=0, column=3, sticky="ew", padx=2, pady=2)
         
-        # Seguro Escolar
-        ttk.Label(otros_frame, text="Seguro Escolar:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        # Fila 2: Seguro Escolar y Pago Voluntario
+        ttk.Label(frame, text="Seguro Escolar:").grid(row=1, column=0, sticky="e", padx=2, pady=2)
         self.seguro_escolar_var = tk.StringVar(value="No")
-        ttk.Combobox(
-            otros_frame,
-            textvariable=self.seguro_escolar_var,
-            values=["No", "Sí"],
-            state="readonly",
-            width=15
-        ).grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        ttk.Combobox(frame, textvariable=self.seguro_escolar_var, values=["No", "Sí"], 
+                     state="readonly", width=10).grid(row=1, column=1, sticky="w", padx=2, pady=2)
         
-        # Pago Voluntario
-        ttk.Label(otros_frame, text="Pago Voluntario:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        ttk.Label(frame, text="Pago Voluntario:").grid(row=1, column=2, sticky="e", padx=2, pady=2)
         self.pago_voluntario_var = tk.StringVar(value="No")
-        ttk.Combobox(
-            otros_frame,
-            textvariable=self.pago_voluntario_var,
-            values=["No", "Sí"],
-            state="readonly",
-            width=15
-        ).grid(row=row, column=3, sticky="w", padx=5, pady=5)
-        row += 1
+        ttk.Combobox(frame, textvariable=self.pago_voluntario_var, values=["No", "Sí"], 
+                     state="readonly", width=10).grid(row=1, column=3, sticky="w", padx=2, pady=2)
         
-        # Monto
-        ttk.Label(otros_frame, text="Monto:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.entries["monto"] = ttk.Entry(otros_frame, width=15)
-        self.entries["monto"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        # Fila 3: Monto y Permiso
+        ttk.Label(frame, text="Monto:").grid(row=2, column=0, sticky="e", padx=2, pady=2)
+        self.entries["monto"] = ttk.Entry(frame, width=10)
+        self.entries["monto"].grid(row=2, column=1, sticky="w", padx=2, pady=2)
         
-        # Permiso
-        ttk.Label(otros_frame, text="Permiso:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        ttk.Label(frame, text="Permiso:").grid(row=2, column=2, sticky="e", padx=2, pady=2)
         self.permiso_var = tk.StringVar(value="No")
-        ttk.Combobox(
-            otros_frame,
-            textvariable=self.permiso_var,
-            values=["No", "Sí"],
-            state="readonly",
-            width=15
-        ).grid(row=row, column=3, sticky="w", padx=5, pady=5)
+        ttk.Combobox(frame, textvariable=self.permiso_var, values=["No", "Sí"], 
+                     state="readonly", width=10).grid(row=2, column=3, sticky="w", padx=2, pady=2)
+        
+        frame.columnconfigure(3, weight=1)
 
-    def _build_inscripcion(self):
-        """Construye sección de Inscripción."""
-        inscripcion_frame = ttk.LabelFrame(self.form_container, text="Inscripción", padding=10)
-        inscripcion_frame.pack(fill=tk.X, padx=10, pady=10)
+    def _build_datos_materia_full_width(self, parent):
+        """Construye sección de materia en ancho completo."""
+        frame = ttk.LabelFrame(parent, text="Datos Materia", padding=5)
+        frame.pack(fill=tk.X, pady=5, side=tk.BOTTOM)
         
-        row = 0
-        
-        # AÑO
-        ttk.Label(inscripcion_frame, text="Año:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        # Fila 1: Año y Turno
+        ttk.Label(frame, text="Año:").grid(row=0, column=0, sticky="e", padx=2, pady=2)
         self.anio_var = tk.StringVar()
-        self.anio_combo = ttk.Combobox(
-            inscripcion_frame,
-            textvariable=self.anio_var,
-            values=["1", "2", "3", "4"],
-            state="readonly",
-            width=10
-        )
-        self.anio_combo.grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        self.anio_combo = ttk.Combobox(frame, textvariable=self.anio_var, values=["1","2","3","4"], 
+                                        state="readonly", width=8)
+        self.anio_combo.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         self.anio_combo.bind("<<ComboboxSelected>>", self._on_anio_change)
         
-        # TURNO
-        ttk.Label(inscripcion_frame, text="Turno:*").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        ttk.Label(frame, text="Turno:").grid(row=0, column=2, sticky="e", padx=2, pady=2)
         self.turno_var = tk.StringVar()
-        ttk.Combobox(
-            inscripcion_frame,
-            textvariable=self.turno_var,
-            values=["Mañana", "Tarde", "Vespertino", "Noche"],
-            state="readonly",
-            width=15
-        ).grid(row=row, column=3, sticky="w", padx=5, pady=5)
-        row += 1
+        ttk.Combobox(frame, textvariable=self.turno_var, values=["Mañana","Tarde"], 
+                     state="readonly", width=12).grid(row=0, column=3, sticky="w", padx=2, pady=2)
         
-        # MATERIA
-        ttk.Label(inscripcion_frame, text="Materia:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        # Fila 2: Materia
+        ttk.Label(frame, text="Materia:").grid(row=1, column=0, sticky="e", padx=2, pady=2)
         self.materia_var = tk.StringVar()
-        self.materia_combo = ttk.Combobox(
-            inscripcion_frame,
-            textvariable=self.materia_var,
-            values=[],
-            state="readonly",
-            width=50
-        )
-        self.materia_combo.grid(row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5)
+        self.materia_combo = ttk.Combobox(frame, textvariable=self.materia_var, values=[], 
+                                           state="readonly", width=50)
+        self.materia_combo.grid(row=1, column=1, columnspan=5, sticky="ew", padx=2, pady=2)
         self.materia_combo.bind("<<ComboboxSelected>>", self._on_materia_change)
-        row += 1
         
-        # PROFESOR/A
-        ttk.Label(inscripcion_frame, text="Profesor/a:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        # Fila 3: Comisión y Profesor
+        ttk.Label(frame, text="Comisión:").grid(row=2, column=0, sticky="e", padx=2, pady=2)
+        self.comision_var = tk.StringVar()
+        self.comision_combo = ttk.Combobox(frame, textvariable=self.comision_var, values=[], 
+                                            state="readonly", width=12)
+        self.comision_combo.grid(row=2, column=1, sticky="w", padx=2, pady=2)
+        self.comision_combo.bind("<<ComboboxSelected>>", self._on_comision_change)
+        
+        ttk.Label(frame, text="Profesor/a:").grid(row=2, column=2, sticky="e", padx=2, pady=2)
         self.profesor_var = tk.StringVar()
-        self.profesor_combo = ttk.Combobox(
-            inscripcion_frame,
-            textvariable=self.profesor_var,
-            values=[],
-            state="readonly",
-            width=30
-        )
-        self.profesor_combo.grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        self.profesor_combo = ttk.Combobox(frame, textvariable=self.profesor_var, values=[], 
+                                            state="readonly", width=25)
+        self.profesor_combo.grid(row=2, column=3, columnspan=3, sticky="ew", padx=2, pady=2)
         self.profesor_combo.bind("<<ComboboxSelected>>", self._on_profesor_change)
         
-        # COMISIÓN
-        ttk.Label(inscripcion_frame, text="Comisión:*").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.comision_var = tk.StringVar()
-        self.comision_combo = ttk.Combobox(
-            inscripcion_frame,
-            textvariable=self.comision_var,
-            values=[],
-            state="readonly",
-            width=15
-        )
-        self.comision_combo.grid(row=row, column=3, sticky="w", padx=5, pady=5)
-        self.comision_combo.bind("<<ComboboxSelected>>", self._on_comision_change)
-        row += 1
-        
-        # HORARIO (automático)
-        ttk.Label(inscripcion_frame, text="Horario:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        # Fila 4: Horario
+        ttk.Label(frame, text="Horario:").grid(row=3, column=0, sticky="e", padx=2, pady=2)
         self.horario_var = tk.StringVar()
-        ttk.Entry(
-            inscripcion_frame,
-            textvariable=self.horario_var,
-            width=30,
-            state="readonly"
-        ).grid(row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5)
-        row += 1
+        ttk.Entry(frame, textvariable=self.horario_var, width=30, state="readonly").grid(row=3, column=1, columnspan=3, sticky="ew", padx=2, pady=2)
         
-        # Texto informativo
-        ttk.Label(
-            inscripcion_frame,
-            text="El horario se completa automáticamente",
-            font=("Helvetica", 8),
-            foreground="gray"
-        ).grid(row=row, column=0, columnspan=4, sticky="w", padx=5)
-        row += 1
+        # Fila 5: Observaciones (compacto)
+        ttk.Label(frame, text="Observaciones:").grid(row=4, column=0, sticky="ne", padx=2, pady=2)
+        self.observaciones_text = tk.Text(frame, width=50, height=2)
+        self.observaciones_text.grid(row=4, column=1, columnspan=5, sticky="ew", padx=2, pady=2)
         
-        # OBSERVACIONES
-        ttk.Label(inscripcion_frame, text="Observaciones:").grid(
-            row=row, column=0, sticky="ne", padx=5, pady=5
-        )
-        self.observaciones_text = tk.Text(inscripcion_frame, width=60, height=3)
-        self.observaciones_text.grid(
-            row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5
-        )
+        frame.columnconfigure(5, weight=1)
 
-    def _build_buttons(self):
+    def _build_buttons(self, parent):
         """Construye sección de botones."""
-        buttons_frame = ttk.Frame(self.form_container)
+        buttons_frame = ttk.Frame(parent)
         buttons_frame.pack(fill=tk.X, padx=10, pady=10)
         
         # Botones principales
