@@ -47,22 +47,28 @@ class FormTab(BaseTab):
         left_panel = ttk.Frame(main_container)
         main_container.add(left_panel, weight=1)
         
-        # Contenedor del formulario con 2 columnas
-        form_container = ttk.Frame(left_panel)
-        form_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # Contenedor del formulario principal
+        form_main = ttk.Frame(left_panel)
+        form_main.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Contenedor para las 2 columnas superiores
+        columns_container = ttk.Frame(form_main)
+        columns_container.pack(fill=tk.BOTH, expand=True)
         
         # Columnas
-        left_column = ttk.Frame(form_container)
+        left_column = ttk.Frame(columns_container)
         left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
         
-        right_column = ttk.Frame(form_container)
+        right_column = ttk.Frame(columns_container)
         right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
         
         # Construir secciones en columnas
         self._build_datos_estudiante_compact(left_column)
         self._build_datos_responsable_compact(right_column)
         self._build_datos_inscripcion_compact(left_column)
-        self._build_datos_materia_full_width(form_container)
+        
+        # Materia section full-width below columns
+        self._build_datos_materia_full_width(form_main)
         
         # Botones abajo
         self._build_buttons(left_panel)
@@ -189,7 +195,7 @@ class FormTab(BaseTab):
     def _build_datos_materia_full_width(self, parent):
         """Construye sección de materia en ancho completo."""
         frame = ttk.LabelFrame(parent, text="Datos Materia", padding=5)
-        frame.pack(fill=tk.X, pady=5, side=tk.BOTTOM)
+        frame.pack(fill=tk.X, pady=(5, 0))
         
         # Fila 1: Año y Turno
         ttk.Label(frame, text="Año:").grid(row=0, column=0, sticky="e", padx=2, pady=2)
