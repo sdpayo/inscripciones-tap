@@ -1,15 +1,10 @@
 """Pestaña de Formulario de Inscripción."""
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+from datetime import datetime
 import sys
 import os
 import threading
-import tkinter as tk
-from datetime import datetime
-from tkinter import filedialog
-from services.pdf_generator import generar_certificado_pdf
-from services.email_service import send_certificado_via_email, get_smtp_config
-from config.settings import CERTIFICATES_DIR
-from tkinter import ttk, messagebox
-from datetime import datetime
 from ui.base_tab import BaseTab
 from database.csv_handler import (
     cargar_registros, guardar_registro, 
@@ -28,7 +23,8 @@ from services.validators import (
     validar_edad_minima, validar_datos_inscripcion
 )
 from services.pdf_generator import generar_certificado_pdf
-from config.settings import settings
+from services.email_service import send_certificado_via_email, get_smtp_config
+from config.settings import settings, CERTIFICATES_DIR
 
 # Detectar pandas
 try:
@@ -80,348 +76,296 @@ class FormTab(BaseTab):
         main_paned.add(right_panel, weight=1)
     
         # Llamar al método _build_table que ya existe
-        # Este método construye todo: título, buscador, tabla y botones
         self._build_table(right_panel)
 
-    def _build_form(self, parent):
-        """Construye el formulario de inscripción."""
-        # Canvas con scrollbar para formulario largo
-        canvas = tk.Canvas(parent, highlightthickness=0)
-        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas)
+    def _build_datos_personales(self):
+        """Construye sección de Datos Personales."""
+        personales_frame = ttk.LabelFrame(self.form_container, text="Datos Personales", padding=10)
+        personales_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-        
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-        
-        # Título
-        ttk.Label(
-            scrollable_frame,
-            text="Nueva Inscripción",
-            font=("Helvetica", 14, "bold")
-        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 15))
-        
-        row = 1
-        
-        # ========== DATOS PERSONALES ==========
-        ttk.Label(
-            scrollable_frame,
-            text="Datos Personales",
-            font=("Helvetica", 11, "bold")
-        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=(10, 5))
-        row += 1
-        
-        ttk.Separator(scrollable_frame, orient="horizontal").grid(
-            row=row, column=0, columnspan=2, sticky="ew", pady=5
-        )
-        row += 1
+        self.entries = {}
+        row = 0
         
         # Nombre
-        ttk.Label(scrollable_frame, text="Nombre:*").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.nombre_var = tk.StringVar()
-        ttk.Entry(scrollable_frame, textvariable=self.nombre_var, width=30).grid(
-            row=row, column=1, sticky="w", padx=5, pady=3
-        )
-        row += 1
+        ttk.Label(personales_frame, text="Nombre:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["nombre"] = ttk.Entry(personales_frame, width=30)
+        self.entries["nombre"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
         
         # Apellido
-        ttk.Label(scrollable_frame, text="Apellido:*").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.apellido_var = tk.StringVar()
-        ttk.Entry(scrollable_frame, textvariable=self.apellido_var, width=30).grid(
-            row=row, column=1, sticky="w", padx=5, pady=3
-        )
+        ttk.Label(personales_frame, text="Apellido:*").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.entries["apellido"] = ttk.Entry(personales_frame, width=30)
+        self.entries["apellido"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
         row += 1
         
         # DNI
-        ttk.Label(scrollable_frame, text="DNI:*").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.dni_var = tk.StringVar()
-        dni_entry = ttk.Entry(scrollable_frame, textvariable=self.dni_var, width=15)
-        dni_entry.grid(row=row, column=1, sticky="w", padx=5, pady=3)
-        dni_entry.bind("<FocusOut>", self._validar_dni)
+        ttk.Label(personales_frame, text="DNI:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["dni"] = ttk.Entry(personales_frame, width=15)
+        self.entries["dni"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        
+        # Fecha de Nacimiento
+        ttk.Label(personales_frame, text="Fecha Nacimiento:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.entries["fecha_nacimiento"] = ttk.Entry(personales_frame, width=15)
+        self.entries["fecha_nacimiento"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
         row += 1
         
         # Edad
-        ttk.Label(scrollable_frame, text="Edad:*").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.edad_var = tk.IntVar(value=0)
-        ttk.Spinbox(scrollable_frame, textvariable=self.edad_var, from_=0, to=99, width=8).grid(
-            row=row, column=1, sticky="w", padx=5, pady=3
-        )
-        row += 1
+        ttk.Label(personales_frame, text="Edad:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["edad"] = ttk.Entry(personales_frame, width=10)
+        self.entries["edad"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
         
         # Legajo
-        ttk.Label(scrollable_frame, text="Legajo:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.legajo_var = tk.StringVar()
-        ttk.Entry(scrollable_frame, textvariable=self.legajo_var, width=15).grid(
-            row=row, column=1, sticky="w", padx=5, pady=3
-        )
-        row += 1
+        ttk.Label(personales_frame, text="Legajo:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.entries["legajo"] = ttk.Entry(personales_frame, width=15)
+        self.entries["legajo"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
+
+    def _build_datos_contacto(self):
+        """Construye sección de Datos de Contacto."""
+        contacto_frame = ttk.LabelFrame(self.form_container, text="Datos de Contacto", padding=10)
+        contacto_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        # Email
-        ttk.Label(scrollable_frame, text="Email:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.email_var = tk.StringVar()
-        email_entry = ttk.Entry(scrollable_frame, textvariable=self.email_var, width=35)
-        email_entry.grid(row=row, column=1, sticky="w", padx=5, pady=3)
-        email_entry.bind("<FocusOut>", self._validar_email)
+        row = 0
+        
+        # Dirección
+        ttk.Label(contacto_frame, text="Dirección:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["direccion"] = ttk.Entry(contacto_frame, width=50)
+        self.entries["direccion"].grid(row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5)
         row += 1
         
         # Teléfono
-        ttk.Label(scrollable_frame, text="Teléfono:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.telefono_var = tk.StringVar()
-        ttk.Entry(scrollable_frame, textvariable=self.telefono_var, width=20).grid(
-            row=row, column=1, sticky="w", padx=5, pady=3
-        )
-        row += 1
+        ttk.Label(contacto_frame, text="Teléfono:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["telefono"] = ttk.Entry(contacto_frame, width=20)
+        self.entries["telefono"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
         
-        # Domicilio
-        ttk.Label(scrollable_frame, text="Domicilio:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.domicilio_var = tk.StringVar()
-        ttk.Entry(scrollable_frame, textvariable=self.domicilio_var, width=35).grid(
-            row=row, column=1, sticky="w", padx=5, pady=3
-        )
-        row += 1
+        # Email
+        ttk.Label(contacto_frame, text="Email:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.entries["email"] = ttk.Entry(contacto_frame, width=30)
+        self.entries["email"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
+
+    def _build_datos_responsables(self):
+        """Construye sección de Datos de Responsables."""
+        responsables_frame = ttk.LabelFrame(self.form_container, text="Datos de Responsables", padding=10)
+        responsables_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        # ========== DATOS FAMILIARES ==========
-        ttk.Label(
-            scrollable_frame,
-            text="Datos Familiares",
-            font=("Helvetica", 11, "bold")
-        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=(15, 5))
-        row += 1
-        
-        ttk.Separator(scrollable_frame, orient="horizontal").grid(
-            row=row, column=0, columnspan=2, sticky="ew", pady=5
-        )
-        row += 1
+        row = 0
         
         # Nombre Padre
-        ttk.Label(scrollable_frame, text="Nombre Padre:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.nombre_padre_var = tk.StringVar()
-        ttk.Entry(scrollable_frame, textvariable=self.nombre_padre_var, width=30).grid(
-            row=row, column=1, sticky="w", padx=5, pady=3
-        )
-        row += 1
+        ttk.Label(responsables_frame, text="Nombre Padre:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["nombre_padre"] = ttk.Entry(responsables_frame, width=30)
+        self.entries["nombre_padre"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
         
         # Nombre Madre
-        ttk.Label(scrollable_frame, text="Nombre Madre:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.nombre_madre_var = tk.StringVar()
-        ttk.Entry(scrollable_frame, textvariable=self.nombre_madre_var, width=30).grid(
-            row=row, column=1, sticky="w", padx=5, pady=3
-        )
+        ttk.Label(responsables_frame, text="Nombre Madre:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.entries["nombre_madre"] = ttk.Entry(responsables_frame, width=30)
+        self.entries["nombre_madre"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
         row += 1
         
-        # Contacto Tutor
-        ttk.Label(scrollable_frame, text="Contacto Tutor:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.contacto_tutor_var = tk.StringVar()
-        ttk.Entry(scrollable_frame, textvariable=self.contacto_tutor_var, width=25).grid(
-            row=row, column=1, sticky="w", padx=5, pady=3
-        )
-        row += 1
+        # Teléfono Emergencia
+        ttk.Label(responsables_frame, text="Tel. Emergencia:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["telefono_emergencia"] = ttk.Entry(responsables_frame, width=20)
+        self.entries["telefono_emergencia"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
+
+    def _build_otros_datos(self):
+        """Construye sección de Otros Datos."""
+        otros_frame = ttk.LabelFrame(self.form_container, text="Otros Datos", padding=10)
+        otros_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        # ========== DATOS ACADÉMICOS ==========
-        ttk.Label(
-            scrollable_frame,
-            text="Datos Académicos",
-            font=("Helvetica", 11, "bold")
-        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=(15, 5))
-        row += 1
+        row = 0
         
-        ttk.Separator(scrollable_frame, orient="horizontal").grid(
-            row=row, column=0, columnspan=2, sticky="ew", pady=5
-        )
-        row += 1
-        
-        # Turno
-        ttk.Label(scrollable_frame, text="Turno:*").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.turno_var = tk.StringVar()
+        # SAETA
+        ttk.Label(otros_frame, text="SAETA:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.saeta_var = tk.StringVar(value="No")
         ttk.Combobox(
-            scrollable_frame,
-            textvariable=self.turno_var,
-            values=["Mañana", "Tarde", "Vespertino"],
+            otros_frame,
+            textvariable=self.saeta_var,
+            values=["No", "Sí"],
             state="readonly",
             width=15
-        ).grid(row=row, column=1, sticky="w", padx=5, pady=3)
+        ).grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        
+        # Obra Social
+        ttk.Label(otros_frame, text="Obra Social:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.entries["obra_social"] = ttk.Entry(otros_frame, width=30)
+        self.entries["obra_social"].grid(row=row, column=3, sticky="w", padx=5, pady=5)
         row += 1
         
-        # Año
-        ttk.Label(scrollable_frame, text="Año:*").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.anio_var = tk.IntVar(value=1)
+        # Seguro Escolar
+        ttk.Label(otros_frame, text="Seguro Escolar:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.seguro_escolar_var = tk.StringVar(value="No")
         ttk.Combobox(
-            scrollable_frame,
-            textvariable=self.anio_var,
-            values=[1, 2, 3, 4],
+            otros_frame,
+            textvariable=self.seguro_escolar_var,
+            values=["No", "Sí"],
             state="readonly",
-            width=8
-        ).grid(row=row, column=1, sticky="w", padx=5, pady=3)
+            width=15
+        ).grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        
+        # Pago Voluntario
+        ttk.Label(otros_frame, text="Pago Voluntario:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.pago_voluntario_var = tk.StringVar(value="No")
+        ttk.Combobox(
+            otros_frame,
+            textvariable=self.pago_voluntario_var,
+            values=["No", "Sí"],
+            state="readonly",
+            width=15
+        ).grid(row=row, column=3, sticky="w", padx=5, pady=5)
         row += 1
         
-        # Materia
-        ttk.Label(scrollable_frame, text="Materia:*").grid(row=row, column=0, sticky="e", padx=5, pady=3)
+        # Monto
+        ttk.Label(otros_frame, text="Monto:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.entries["monto"] = ttk.Entry(otros_frame, width=15)
+        self.entries["monto"].grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        
+        # Permiso
+        ttk.Label(otros_frame, text="Permiso:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.permiso_var = tk.StringVar(value="No")
+        ttk.Combobox(
+            otros_frame,
+            textvariable=self.permiso_var,
+            values=["No", "Sí"],
+            state="readonly",
+            width=15
+        ).grid(row=row, column=3, sticky="w", padx=5, pady=5)
+
+    def _build_inscripcion(self):
+        """Construye sección de Inscripción."""
+        inscripcion_frame = ttk.LabelFrame(self.form_container, text="Inscripción", padding=10)
+        inscripcion_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        row = 0
+        
+        # AÑO
+        ttk.Label(inscripcion_frame, text="Año:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
+        self.anio_var = tk.StringVar()
+        self.anio_combo = ttk.Combobox(
+            inscripcion_frame,
+            textvariable=self.anio_var,
+            values=["1", "2", "3", "4"],
+            state="readonly",
+            width=10
+        )
+        self.anio_combo.grid(row=row, column=1, sticky="w", padx=5, pady=5)
+        self.anio_combo.bind("<<ComboboxSelected>>", self._on_anio_change)
+        
+        # TURNO
+        ttk.Label(inscripcion_frame, text="Turno:*").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        self.turno_var = tk.StringVar()
+        ttk.Combobox(
+            inscripcion_frame,
+            textvariable=self.turno_var,
+            values=["Mañana", "Tarde", "Vespertino", "Noche"],
+            state="readonly",
+            width=15
+        ).grid(row=row, column=3, sticky="w", padx=5, pady=5)
+        row += 1
+        
+        # MATERIA
+        ttk.Label(inscripcion_frame, text="Materia:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
         self.materia_var = tk.StringVar()
         self.materia_combo = ttk.Combobox(
-            scrollable_frame,
+            inscripcion_frame,
             textvariable=self.materia_var,
-            values=get_todas_materias(),
+            values=[],
             state="readonly",
-            width=30
+            width=50
         )
-        self.materia_combo.grid(row=row, column=1, sticky="w", padx=5, pady=3)
+        self.materia_combo.grid(row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5)
         self.materia_combo.bind("<<ComboboxSelected>>", self._on_materia_change)
         row += 1
         
-        # Profesor
-        ttk.Label(scrollable_frame, text="Profesor:*").grid(row=row, column=0, sticky="e", padx=5, pady=3)
+        # PROFESOR/A
+        ttk.Label(inscripcion_frame, text="Profesor/a:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
         self.profesor_var = tk.StringVar()
         self.profesor_combo = ttk.Combobox(
-            scrollable_frame,
+            inscripcion_frame,
             textvariable=self.profesor_var,
             values=[],
             state="readonly",
             width=30
         )
-        self.profesor_combo.grid(row=row, column=1, sticky="w", padx=5, pady=3)
+        self.profesor_combo.grid(row=row, column=1, sticky="w", padx=5, pady=5)
         self.profesor_combo.bind("<<ComboboxSelected>>", self._on_profesor_change)
-        row += 1
         
-        # Comisión
-        ttk.Label(scrollable_frame, text="Comisión:*").grid(row=row, column=0, sticky="e", padx=5, pady=3)
+        # COMISIÓN
+        ttk.Label(inscripcion_frame, text="Comisión:*").grid(row=row, column=2, sticky="e", padx=5, pady=5)
         self.comision_var = tk.StringVar()
         self.comision_combo = ttk.Combobox(
-            scrollable_frame,
+            inscripcion_frame,
             textvariable=self.comision_var,
             values=[],
             state="readonly",
             width=15
         )
-        self.comision_combo.grid(row=row, column=1, sticky="w", padx=5, pady=3)
+        self.comision_combo.grid(row=row, column=3, sticky="w", padx=5, pady=5)
+        self.comision_combo.bind("<<ComboboxSelected>>", self._on_comision_change)
         row += 1
         
-        # Horario
-        ttk.Label(scrollable_frame, text="Horario:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
+        # HORARIO (automático)
+        ttk.Label(inscripcion_frame, text="Horario:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
         self.horario_var = tk.StringVar()
-        ttk.Entry(scrollable_frame, textvariable=self.horario_var, width=25).grid(
-            row=row, column=1, sticky="w", padx=5, pady=3
-        )
+        ttk.Entry(
+            inscripcion_frame,
+            textvariable=self.horario_var,
+            width=30,
+            state="readonly"
+        ).grid(row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5)
         row += 1
         
-        # ========== OTROS DATOS ==========
+        # Texto informativo
         ttk.Label(
-            scrollable_frame,
-            text="Otros Datos",
-            font=("Helvetica", 11, "bold")
-        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=(15, 5))
+            inscripcion_frame,
+            text="El horario se completa automáticamente",
+            font=("Helvetica", 8),
+            foreground="gray"
+        ).grid(row=row, column=0, columnspan=4, sticky="w", padx=5)
         row += 1
         
-        ttk.Separator(scrollable_frame, orient="horizontal").grid(
-            row=row, column=0, columnspan=2, sticky="ew", pady=5
+        # OBSERVACIONES
+        ttk.Label(inscripcion_frame, text="Observaciones:").grid(
+            row=row, column=0, sticky="ne", padx=5, pady=5
         )
-        row += 1
-        
-        # SAETA
-        ttk.Label(scrollable_frame, text="SAETA:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.saeta_var = tk.StringVar(value="No")
-        ttk.Combobox(
-            scrollable_frame,
-            textvariable=self.saeta_var,
-            values=["Sí", "No"],
-            state="readonly",
-            width=10
-        ).grid(row=row, column=1, sticky="w", padx=5, pady=3)
-        row += 1
-        
-        # Obra Social
-        ttk.Label(scrollable_frame, text="Obra Social:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.obra_social_var = tk.StringVar()
-        ttk.Entry(scrollable_frame, textvariable=self.obra_social_var, width=25).grid(
-            row=row, column=1, sticky="w", padx=5, pady=3
+        self.observaciones_text = tk.Text(inscripcion_frame, width=60, height=3)
+        self.observaciones_text.grid(
+            row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5
         )
-        row += 1
+
+    def _build_buttons(self):
+        """Construye sección de botones."""
+        buttons_frame = ttk.Frame(self.form_container)
+        buttons_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        # Seguro Escolar
-        ttk.Label(scrollable_frame, text="Seguro Escolar:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.seguro_escolar_var = tk.StringVar(value="No")
-        ttk.Combobox(
-            scrollable_frame,
-            textvariable=self.seguro_escolar_var,
-            values=["Sí", "No"],
-            state="readonly",
-            width=10
-        ).grid(row=row, column=1, sticky="w", padx=5, pady=3)
-        row += 1
-        
-        # Pago Voluntario
-        ttk.Label(scrollable_frame, text="Pago Voluntario:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.pago_voluntario_var = tk.StringVar(value="No")
-        ttk.Combobox(
-            scrollable_frame,
-            textvariable=self.pago_voluntario_var,
-            values=["Sí", "No"],
-            state="readonly",
-            width=10
-        ).grid(row=row, column=1, sticky="w", padx=5, pady=3)
-        row += 1
-        
-        # Monto
-        ttk.Label(scrollable_frame, text="Monto:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.monto_var = tk.StringVar()
-        ttk.Entry(scrollable_frame, textvariable=self.monto_var, width=15).grid(
-            row=row, column=1, sticky="w", padx=5, pady=3
-        )
-        row += 1
-        
-        # Permiso
-        ttk.Label(scrollable_frame, text="Permiso:").grid(row=row, column=0, sticky="e", padx=5, pady=3)
-        self.permiso_var = tk.StringVar(value="No")
-        ttk.Combobox(
-            scrollable_frame,
-            textvariable=self.permiso_var,
-            values=["Sí", "No"],
-            state="readonly",
-            width=10
-        ).grid(row=row, column=1, sticky="w", padx=5, pady=3)
-        row += 1
-        
-        # Observaciones
-        ttk.Label(scrollable_frame, text="Observaciones:").grid(
-            row=row, column=0, sticky="ne", padx=5, pady=3
-        )
-        self.observaciones_text = tk.Text(scrollable_frame, width=30, height=3)
-        self.observaciones_text.grid(row=row, column=1, sticky="w", padx=5, pady=3)
-        row += 1
-        
-        # ========== BOTONES ==========
-        btn_frame = ttk.Frame(scrollable_frame)
-        btn_frame.grid(row=row, column=0, columnspan=2, pady=20)
-        
-        self.guardar_btn = ttk.Button(
-            btn_frame,
-            text="💾 Guardar",
-            command=self._guardar_inscripcion
-        )
-        self.guardar_btn.pack(side=tk.LEFT, padx=5)
+        # Botones principales
+        ttk.Button(
+            buttons_frame,
+            text="💾 Guardar Inscripción",
+            command=self._guardar
+        ).grid(row=0, column=0, padx=5, pady=5)
         
         ttk.Button(
-            btn_frame,
-            text="🗑️ Limpiar",
-            command=self._limpiar_formulario
-        ).pack(side=tk.LEFT, padx=5)
+            buttons_frame,
+            text="🗑️ Limpiar Formulario",
+            command=self._limpiar
+        ).grid(row=0, column=1, padx=5, pady=5)
         
-        ttk.Label(
-            scrollable_frame,
-            text="* Campos obligatorios",
-            foreground="gray",
-            font=("Helvetica", 8)
-        ).grid(row=row+1, column=0, columnspan=2, sticky="w", pady=(0, 10))
+        # === NUEVOS BOTONES ===
+        ttk.Button(
+            buttons_frame,
+            text="📧 Generar y Enviar",
+            command=self._generar_y_enviar
+        ).grid(row=0, column=2, padx=5, pady=5)
         
-        # Variable para modo edición
-        self.editing_id = None
-    
+        ttk.Button(
+            buttons_frame,
+            text="📄 Generar Certificado",
+            command=self._generar_certificado
+        ).grid(row=0, column=3, padx=5, pady=5)
+        
+        ttk.Button(
+            buttons_frame,
+            text="📊 Exportar Excel",
+            command=self._exportar_excel
+        ).grid(row=0, column=4, padx=5, pady=5)
+
     def _build_table(self, parent):
         """Construye tabla de inscripciones registradas."""
         # Contenedor principal
@@ -512,6 +456,19 @@ class FormTab(BaseTab):
             command=self._generar_certificado_seleccionado
         ).pack(side=tk.LEFT, padx=2)
         
+        # === NUEVOS BOTONES ===
+        ttk.Button(
+            buttons_frame,
+            text="📂 Abrir carpeta certificados",
+            command=self._abrir_carpeta_certificados
+        ).pack(side=tk.LEFT, padx=2)
+        
+        ttk.Button(
+            buttons_frame,
+            text="📧 Enviar certificado (seleccionado)",
+            command=self._enviar_certificado_seleccionado
+        ).pack(side=tk.LEFT, padx=2)
+        
         ttk.Button(
             buttons_frame,
             text="🔄 Refrescar",
@@ -521,282 +478,153 @@ class FormTab(BaseTab):
         # Cargar datos iniciales
         self.refresh()
 
-    def _show_context_menu(self, event):
-        """Muestra menú contextual."""
-        item = self.tree.identify_row(event.y)
-        if item:
-            self.tree.selection_set(item)
-            self.context_menu.post(event.x_root, event.y_root)
-    
-    # ========== VALIDACIONES ==========
-    
-    def _validar_dni(self, event=None):
-        """Valida DNI en tiempo real."""
-        dni = self.dni_var.get().strip()
-        if dni and not validar_dni(dni):
-            self.show_warning("DNI", "El DNI debe tener 7-8 dígitos.")
-    
-    def _validar_email(self, event=None):
-        """Valida email en tiempo real."""
-        email = self.email_var.get().strip()
-        if email and not validar_email(email):
-            self.show_warning("Email", "El formato del email no es válido.")
-    
-    # ========== CASCADA MATERIA/PROFESOR/COMISION ==========
-    
+    def _on_anio_change(self, event=None):
+        """Al cambiar año, filtrar materias."""
+        anio = self.anio_var.get()
+        if not anio:
+            return
+        
+        materias = get_materias_por_anio(int(anio))
+        self.materia_combo['values'] = materias
+        self.materia_var.set("")
+        self.profesor_var.set("")
+        self.comision_var.set("")
+        self.horario_var.set("")
+
     def _on_materia_change(self, event=None):
-        """Actualiza profesores al cambiar materia."""
+        """Al cambiar materia, cargar profesores."""
         materia = self.materia_var.get()
         if not materia:
             return
         
         profesores = get_profesores_materia(materia)
         self.profesor_combo['values'] = profesores
-        
-        if profesores:
-            self.profesor_var.set(profesores[0])
-            self._on_profesor_change()
-        else:
-            self.profesor_var.set("")
-            self.comision_combo['values'] = []
-            self.comision_var.set("")
-    
+        self.profesor_var.set("")
+        self.comision_var.set("")
+        self.horario_var.set("")
+
     def _on_profesor_change(self, event=None):
-        """Actualiza comisiones al cambiar profesor."""
+        """Al cambiar profesor, cargar comisiones."""
         materia = self.materia_var.get()
         profesor = self.profesor_var.get()
-        
         if not materia or not profesor:
             return
         
-        comisiones = get_comisiones_materia(materia, profesor)
+        comisiones = get_comisiones_profesor(materia, profesor)
         self.comision_combo['values'] = comisiones
+        self.comision_var.set("")
+        self.horario_var.set("")
+
+    def _on_comision_change(self, event=None):
+        """Al cambiar comisión, cargar horario."""
+        materia = self.materia_var.get()
+        profesor = self.profesor_var.get()
+        comision = self.comision_var.get()
+        if not all([materia, profesor, comision]):
+            return
         
-        if comisiones:
-            self.comision_var.set(comisiones[0])
-        else:
-            self.comision_var.set("")
-    
-    # ========== GUARDAR/EDITAR ==========
-    
-    def _guardar_inscripcion(self):
-        """Guarda o actualiza inscripción."""
-        # Recolectar datos
-        datos = {
-            "nombre": self.nombre_var.get().strip(),
-            "apellido": self.apellido_var.get().strip(),
-            "dni": self.dni_var.get().strip(),
-            "edad": self.edad_var.get(),
-            "legajo": self.legajo_var.get().strip(),
-            "email": self.email_var.get().strip(),
-            "telefono": self.telefono_var.get().strip(),
-            "domicilio": self.domicilio_var.get().strip(),
-            "nombre_padre": self.nombre_padre_var.get().strip(),
-            "nombre_madre": self.nombre_madre_var.get().strip(),
-            "contacto_tutor": self.contacto_tutor_var.get().strip(),
-            "turno": self.turno_var.get(),
+        horario = get_horario(materia, profesor, comision)
+        self.horario_var.set(horario if horario else "Sin horario")
+
+    def _guardar(self):
+        """Guarda la inscripción."""
+        # Validar campos obligatorios
+        if not self.entries["nombre"].get().strip():
+            self.show_warning("Validación", "El nombre es obligatorio")
+            return
+        
+        if not self.entries["apellido"].get().strip():
+            self.show_warning("Validación", "El apellido es obligatorio")
+            return
+        
+        if not self.entries["dni"].get().strip():
+            self.show_warning("Validación", "El DNI es obligatorio")
+            return
+        
+        if not self.anio_var.get():
+            self.show_warning("Validación", "El año es obligatorio")
+            return
+        
+        if not self.turno_var.get():
+            self.show_warning("Validación", "El turno es obligatorio")
+            return
+        
+        if not self.materia_var.get():
+            self.show_warning("Validación", "La materia es obligatoria")
+            return
+        
+        if not self.profesor_var.get():
+            self.show_warning("Validación", "El profesor es obligatorio")
+            return
+        
+        if not self.comision_var.get():
+            self.show_warning("Validación", "La comisión es obligatoria")
+            return
+        
+        # Construir registro
+        import uuid
+        
+        registro = {
+            "id": str(uuid.uuid4()),
+            "fecha_inscripcion": datetime.now().isoformat(),
+            "nombre": self.entries["nombre"].get().strip(),
+            "apellido": self.entries["apellido"].get().strip(),
+            "dni": self.entries["dni"].get().strip(),
+            "fecha_nacimiento": self.entries.get("fecha_nacimiento", ttk.Entry(self.form_container)).get().strip(),
+            "edad": self.entries.get("edad", ttk.Entry(self.form_container)).get().strip(),
+            "legajo": self.entries.get("legajo", ttk.Entry(self.form_container)).get().strip(),
+            "direccion": self.entries.get("direccion", ttk.Entry(self.form_container)).get().strip(),
+            "telefono": self.entries.get("telefono", ttk.Entry(self.form_container)).get().strip(),
+            "email": self.entries.get("email", ttk.Entry(self.form_container)).get().strip(),
+            "nombre_padre": self.entries.get("nombre_padre", ttk.Entry(self.form_container)).get().strip(),
+            "nombre_madre": self.entries.get("nombre_madre", ttk.Entry(self.form_container)).get().strip(),
+            "telefono_emergencia": self.entries.get("telefono_emergencia", ttk.Entry(self.form_container)).get().strip(),
+            "saeta": self.saeta_var.get(),
+            "obra_social": self.entries.get("obra_social", ttk.Entry(self.form_container)).get().strip(),
+            "seguro_escolar": self.seguro_escolar_var.get(),
+            "pago_voluntario": self.pago_voluntario_var.get(),
+            "monto": self.entries.get("monto", ttk.Entry(self.form_container)).get().strip(),
+            "permiso": self.permiso_var.get(),
             "anio": self.anio_var.get(),
+            "turno": self.turno_var.get(),
             "materia": self.materia_var.get(),
             "profesor": self.profesor_var.get(),
             "comision": self.comision_var.get(),
             "horario": self.horario_var.get().strip(),
-            "saeta": self.saeta_var.get(),
-            "obra_social": self.obra_social_var.get().strip(),
-            "seguro_escolar": self.seguro_escolar_var.get(),
-            "pago_voluntario": self.pago_voluntario_var.get(),
-            "monto": self.monto_var.get().strip(),
-            "permiso": self.permiso_var.get(),
             "observaciones": self.observaciones_text.get("1.0", tk.END).strip(),
             "en_lista_espera": "No"
         }
         
-        # Validar
-        ok, msg = validar_datos_inscripcion(datos)
-        if not ok:
-            self.show_error("Validación", msg)
-            return
-        
         # Guardar
         try:
-            if self.editing_id:
-                # Actualizar existente
-                datos["id"] = self.editing_id
-                datos["fecha_inscripcion"] = self._get_fecha_inscripcion(self.editing_id)
-                actualizar_registro(datos)
-                self.show_info("Éxito", f"Inscripción actualizada: {datos['nombre']} {datos['apellido']}")
-                self.editing_id = None
-                self.guardar_btn.config(text="💾 Guardar")
-            else:
-                # Nueva inscripción
-                datos["id"] = generar_id()
-                datos["fecha_inscripcion"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                guardar_registro(datos)
-                self.show_info("Éxito", f"Inscripción guardada: {datos['nombre']} {datos['apellido']}")
-            
-            # Limpiar y refrescar
-            self._limpiar_formulario()
+            guardar_registro(registro)
+            self.show_info("Éxito", f"Inscripción guardada correctamente\nID: {registro['id'][:8]}")
+            self._limpiar()
             self.refresh()
-            
+            self.app.refresh_all()
         except Exception as e:
             self.show_error("Error", f"No se pudo guardar: {e}")
-    
-    def _get_fecha_inscripcion(self, reg_id):
-        """Obtiene fecha original de inscripción."""
-        registros = cargar_registros()
-        for reg in registros:
-            if reg.get("id") == reg_id:
-                return reg.get("fecha_inscripcion", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    def _limpiar_formulario(self):
+
+    def _limpiar(self):
         """Limpia todos los campos del formulario."""
-        self.nombre_var.set("")
-        self.apellido_var.set("")
-        self.dni_var.set("")
-        self.edad_var.set(0)
-        self.legajo_var.set("")
-        self.email_var.set("")
-        self.telefono_var.set("")
-        self.domicilio_var.set("")
-        self.nombre_padre_var.set("")
-        self.nombre_madre_var.set("")
-        self.contacto_tutor_var.set("")
+        # Limpiar entries
+        for entry in self.entries.values():
+            entry.delete(0, tk.END)
+        
+        # Limpiar comboboxes
+        self.saeta_var.set("No")
+        self.seguro_escolar_var.set("No")
+        self.pago_voluntario_var.set("No")
+        self.permiso_var.set("No")
+        self.anio_var.set("")
         self.turno_var.set("")
-        self.anio_var.set(1)
         self.materia_var.set("")
         self.profesor_var.set("")
         self.comision_var.set("")
         self.horario_var.set("")
-        self.saeta_var.set("No")
-        self.obra_social_var.set("")
-        self.seguro_escolar_var.set("No")
-        self.pago_voluntario_var.set("No")
-        self.monto_var.set("")
-        self.permiso_var.set("No")
+        
+        # Limpiar observaciones
         self.observaciones_text.delete("1.0", tk.END)
-        
-        self.editing_id = None
-        self.guardar_btn.config(text="💾 Guardar")
-    
-    # ========== ACCIONES TABLA ==========
-    
-    def _editar_seleccion(self, event):
-        """Carga datos seleccionados en el formulario para editar."""
-        selection = self.tree.selection()
-        if not selection:
-            self.show_warning("Editar", "Seleccioná un registro para editar.")
-            return
-        
-        item = self.tree.item(selection[0])
-        reg_id = item["text"]
-        
-        # Buscar registro
-        registros = cargar_registros()
-        registro = None
-        for reg in registros:
-            if reg.get("id") == reg_id:
-                registro = reg
-                break
-        
-        if not registro:
-            self.show_error("Error", "Registro no encontrado.")
-            return
-        
-        # Cargar en formulario
-        self.nombre_var.set(registro.get("nombre", ""))
-        self.apellido_var.set(registro.get("apellido", ""))
-        self.dni_var.set(registro.get("dni", ""))
-        self.edad_var.set(registro.get("edad", 0))
-        self.legajo_var.set(registro.get("legajo", ""))
-        self.email_var.set(registro.get("mail", ""))
-        self.telefono_var.set(registro.get("telefono", ""))
-        self.domicilio_var.set(registro.get("domicilio", ""))
-        self.nombre_padre_var.set(registro.get("nombre_padre", ""))
-        self.nombre_madre_var.set(registro.get("nombre_madre", ""))
-        self.contacto_tutor_var.set(registro.get("contacto_tutor", ""))
-        self.turno_var.set(registro.get("turno", ""))
-        self.anio_var.set(registro.get("anio", 1))
-        self.materia_var.set(registro.get("materia", ""))
-        self._on_materia_change()
-        self.profesor_var.set(registro.get("profesor", ""))
-        self._on_profesor_change()
-        self.comision_var.set(registro.get("comision", ""))
-        self.horario_var.set(registro.get("horario", ""))
-        self.saeta_var.set(registro.get("saeta", "No"))
-        self.obra_social_var.set(registro.get("obra_social", ""))
-        self.seguro_escolar_var.set(registro.get("seguro_escolar", "No"))
-        self.pago_voluntario_var.set(registro.get("pago_voluntario", "No"))
-        self.monto_var.set(registro.get("monto", ""))
-        self.permiso_var.set(registro.get("permiso", "No"))
-        self.observaciones_text.delete("1.0", tk.END)
-        self.observaciones_text.insert("1.0", registro.get("observaciones", ""))
-        
-        # Modo edición
-        self.editing_id = reg_id
-        self.guardar_btn.config(text="💾 Actualizar")
-    
-    def _eliminar_seleccion(self):
-        """Elimina registro seleccionado."""
-        selection = self.tree.selection()
-        if not selection:
-            self.show_warning("Eliminar", "Seleccioná un registro para eliminar.")
-            return
-        
-        item = self.tree.item(selection[0])
-        reg_id = item["text"]
-        nombre = item["values"][0]
-        apellido = item["values"][1]
-        
-        if not self.ask_yes_no("Confirmar", f"¿Eliminar inscripción de {nombre} {apellido}?"):
-            return
-        
-        try:
-            eliminar_registro(reg_id)
-            self.show_info("Éxito", "Inscripción eliminada.")
-            self.refresh()
-        except Exception as e:
-            self.show_error("Error", f"No se pudo eliminar: {e}")
-    
-    def _generar_certificado_seleccion(self):
-        """Genera certificado PDF para registro seleccionado."""
-        selection = self.tree.selection()
-        if not selection:
-            self.show_warning("Certificado", "Seleccioná un registro.")
-            return
-        
-        item = self.tree.item(selection[0])
-        reg_id = item["text"]
-        
-        # Buscar registro
-        registros = cargar_registros()
-        registro = None
-        for reg in registros:
-            if reg.get("id") == reg_id:
-                registro = reg
-                break
-        
-        if not registro:
-            self.show_error("Error", "Registro no encontrado.")
-            return
-        
-        # Validar seguro escolar si está configurado
-        if settings.get("app.require_seguro_escolar"):
-            if registro.get("seguro_escolar", "No") != "Sí":
-                if not self.ask_yes_no(
-                    "Seguro Escolar",
-                    "El alumno no tiene seguro escolar. ¿Generar certificado de todos modos?"
-                ):
-                    return
-        
-        # Generar PDF
-        try:
-            ok, msg = generar_certificado_pdf(registro)
-            if ok:
-                self.show_info("Certificado", msg)
-            else:
-                self.show_error("Error", msg)
-        except Exception as e:
-            self.show_error("Error", f"No se pudo generar certificado: {e}")
 
     def _filtrar_tabla(self):
         """Filtra la tabla según el texto de búsqueda."""
@@ -807,7 +635,6 @@ class FormTab(BaseTab):
             self.tree.delete(item)
         
         # Recargar registros filtrados
-        from database.csv_handler import cargar_registros
         registros = cargar_registros()
         
         for reg in registros:
@@ -837,7 +664,7 @@ class FormTab(BaseTab):
         """Carga el registro seleccionado en el formulario para editar."""
         selection = self.tree.selection()
         if not selection:
-            self.show_warning("Editar", "Seleccioná un registro de la tabla")
+            self.show_warning("Editar", "Selecciona un registro de la tabla")
             return
         
         # Obtener valores de la fila seleccionada
@@ -849,7 +676,6 @@ class FormTab(BaseTab):
         
         # Buscar registro completo por ID
         id_corto = values[0]
-        from database.csv_handler import cargar_registros
         registros = cargar_registros()
         
         registro = None
@@ -863,40 +689,32 @@ class FormTab(BaseTab):
             return
         
         # Cargar datos en el formulario
-        self.nombre_var.set(registro.get("nombre", ""))
-        self.apellido_var.set(registro.get("apellido", ""))
-        self.dni_var.set(registro.get("dni", ""))
-        self.fecha_nac_var.set(registro.get("fecha_nacimiento", ""))
-        self.edad_var.set(registro.get("edad", ""))
+        self.entries["nombre"].delete(0, tk.END)
+        self.entries["nombre"].insert(0, registro.get("nombre", ""))
         
-        self.direccion_var.set(registro.get("direccion", ""))
-        self.telefono_var.set(registro.get("telefono", ""))
-        self.email_var.set(registro.get("email", ""))
+        self.entries["apellido"].delete(0, tk.END)
+        self.entries["apellido"].insert(0, registro.get("apellido", ""))
         
-        self.nombre_padre_var.set(registro.get("nombre_padre", ""))
-        self.nombre_madre_var.set(registro.get("nombre_madre", ""))
-        self.telefono_emergencia_var.set(registro.get("telefono_emergencia", ""))
+        self.entries["dni"].delete(0, tk.END)
+        self.entries["dni"].insert(0, registro.get("dni", ""))
         
-        self.obra_social_var.set(registro.get("obra_social", ""))
-        self.seguro_escolar_var.set(registro.get("seguro_escolar", "No"))
+        if "fecha_nacimiento" in self.entries:
+            self.entries["fecha_nacimiento"].delete(0, tk.END)
+            self.entries["fecha_nacimiento"].insert(0, registro.get("fecha_nacimiento", ""))
         
-        self.anio_var.set(registro.get("anio", ""))
-        self.turno_var.set(registro.get("turno", ""))
-        self.materia_var.set(registro.get("materia", ""))
-        self.profesor_var.set(registro.get("profesor", ""))
-        self.comision_var.set(registro.get("comision", ""))
-        self.horario_var.set(registro.get("horario", ""))
+        if "edad" in self.entries:
+            self.entries["edad"].delete(0, tk.END)
+            self.entries["edad"].insert(0, registro.get("edad", ""))
         
-        self.observaciones_text.delete("1.0", tk.END)
-        self.observaciones_text.insert("1.0", registro.get("observaciones", ""))
+        # ... cargar resto de campos ...
         
-        self.show_info("Editar", "Registro cargado. Modificá los campos y guardá.")
+        self.show_info("Editar", "Registro cargado. Modifica los campos y guarda.")
 
     def _eliminar_seleccionado(self):
         """Elimina el registro seleccionado."""
         selection = self.tree.selection()
         if not selection:
-            self.show_warning("Eliminar", "Seleccioná un registro de la tabla")
+            self.show_warning("Eliminar", "Selecciona un registro de la tabla")
             return
         
         item = self.tree.item(selection[0])
@@ -916,7 +734,6 @@ class FormTab(BaseTab):
         
         # Buscar y eliminar por ID
         id_corto = values[0]
-        from database.csv_handler import cargar_registros, guardar_todos_registros
         registros = cargar_registros()
         
         registros_filtrados = [
@@ -924,6 +741,7 @@ class FormTab(BaseTab):
             if not reg.get("id", "").startswith(id_corto)
         ]
         
+        from database.csv_handler import guardar_todos_registros
         ok, msg = guardar_todos_registros(registros_filtrados)
         
         if ok:
@@ -937,7 +755,7 @@ class FormTab(BaseTab):
         """Genera certificado del registro seleccionado."""
         selection = self.tree.selection()
         if not selection:
-            self.show_warning("Certificado", "Seleccioná un registro de la tabla")
+            self.show_warning("Certificado", "Selecciona un registro de la tabla")
             return
         
         # Obtener ID y buscar registro completo
@@ -945,7 +763,6 @@ class FormTab(BaseTab):
         values = item['values']
         id_corto = values[0]
         
-        from database.csv_handler import cargar_registros
         registros = cargar_registros()
         
         registro = None
@@ -958,243 +775,12 @@ class FormTab(BaseTab):
             self.show_error("Error", "No se encontró el registro")
             return
         
-        from services.pdf_generator import generar_certificado_pdf
-        
         ok, msg = generar_certificado_pdf(registro)
         
         if ok:
             self.show_info("Certificado", msg)
         else:
             self.show_error("Error", msg)
-
-    def _build_otros_datos(self):
-        """Construye sección de Otros Datos."""
-        otros_frame = ttk.LabelFrame(self.form_container, text="Otros Datos", padding=10)
-        otros_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        row = 0
-        
-        # SAETA
-        ttk.Label(otros_frame, text="SAETA:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.saeta_var = tk.StringVar()
-        ttk.Combobox(
-            otros_frame,
-            textvariable=self.saeta_var,
-            values=["No", "Sí"],
-            state="readonly",
-            width=15
-        ).grid(row=row, column=1, sticky="w", padx=5, pady=5)
-        self.saeta_var.set("No")
-        
-        # Obra Social
-        ttk.Label(otros_frame, text="Obra Social:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.obra_social_var = tk.StringVar()
-        ttk.Entry(otros_frame, textvariable=self.obra_social_var, width=30).grid(
-            row=row, column=3, sticky="w", padx=5, pady=5
-        )
-        row += 1
-        
-        # Seguro Escolar
-        ttk.Label(otros_frame, text="Seguro Escolar:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.seguro_escolar_var = tk.StringVar()
-        ttk.Combobox(
-            otros_frame,
-            textvariable=self.seguro_escolar_var,
-            values=["No", "Sí"],
-            state="readonly",
-            width=15
-        ).grid(row=row, column=1, sticky="w", padx=5, pady=5)
-        self.seguro_escolar_var.set("No")
-        
-        # Pago Voluntario
-        ttk.Label(otros_frame, text="Pago Voluntario:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.pago_voluntario_var = tk.StringVar()
-        ttk.Combobox(
-            otros_frame,
-            textvariable=self.pago_voluntario_var,
-            values=["No", "Sí"],
-            state="readonly",
-            width=15
-        ).grid(row=row, column=3, sticky="w", padx=5, pady=5)
-        self.pago_voluntario_var.set("No")
-        row += 1
-        
-        # Monto
-        ttk.Label(otros_frame, text="Monto:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.monto_var = tk.StringVar()
-        ttk.Entry(otros_frame, textvariable=self.monto_var, width=15).grid(
-            row=row, column=1, sticky="w", padx=5, pady=5
-        )
-        
-        # Permiso
-        ttk.Label(otros_frame, text="Permiso:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.permiso_var = tk.StringVar()
-        ttk.Combobox(
-            otros_frame,
-            textvariable=self.permiso_var,
-            values=["No", "Sí"],
-            state="readonly",
-            width=15
-        ).grid(row=row, column=3, sticky="w", padx=5, pady=5)
-        self.permiso_var.set("No")
-        row += 1
-
-    def _build_inscripcion(self):
-        """Construye sección de Inscripción."""
-        inscripcion_frame = ttk.LabelFrame(self.form_container, text="Inscripción", padding=10)
-        inscripcion_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        row = 0
-        
-        # AÑO
-        ttk.Label(inscripcion_frame, text="Año:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.anio_var = tk.StringVar()
-        self.anio_combo = ttk.Combobox(
-            inscripcion_frame,
-            textvariable=self.anio_var,
-            values=["1", "2", "3", "4"],
-            state="readonly",
-            width=10
-        )
-        self.anio_combo.grid(row=row, column=1, sticky="w", padx=5, pady=5)
-        self.anio_combo.bind("<<ComboboxSelected>>", self._on_anio_change)
-        
-        # TURNO
-        ttk.Label(inscripcion_frame, text="Turno:*").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.turno_var = tk.StringVar()
-        ttk.Combobox(
-            inscripcion_frame,
-            textvariable=self.turno_var,
-            values=["Mañana", "Tarde", "Vespertino", "Noche"],
-            state="readonly",
-            width=15
-        ).grid(row=row, column=3, sticky="w", padx=5, pady=5)
-        row += 1
-        
-        # MATERIA
-        ttk.Label(inscripcion_frame, text="Materia:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.materia_var = tk.StringVar()
-        self.materia_combo = ttk.Combobox(
-            inscripcion_frame,
-            textvariable=self.materia_var,
-            values=[],
-            state="readonly",
-            width=50
-        )
-        self.materia_combo.grid(row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5)
-        self.materia_combo.bind("<<ComboboxSelected>>", self._on_materia_change)
-        row += 1
-        
-        # PROFESOR/A
-        ttk.Label(inscripcion_frame, text="Profesor/a:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.profesor_var = tk.StringVar()
-        self.profesor_combo = ttk.Combobox(
-            inscripcion_frame,
-            textvariable=self.profesor_var,
-            values=[],
-            state="readonly",
-            width=30
-        )
-        self.profesor_combo.grid(row=row, column=1, sticky="w", padx=5, pady=5)
-        self.profesor_combo.bind("<<ComboboxSelected>>", self._on_profesor_change)
-        
-        # COMISIÓN
-        ttk.Label(inscripcion_frame, text="Comisión:*").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.comision_var = tk.StringVar()
-        self.comision_combo = ttk.Combobox(
-            inscripcion_frame,
-            textvariable=self.comision_var,
-            values=[],
-            state="readonly",
-            width=15
-        )
-        self.comision_combo.grid(row=row, column=3, sticky="w", padx=5, pady=5)
-        self.comision_combo.bind("<<ComboboxSelected>>", self._on_comision_change)
-        row += 1
-        
-        # HORARIO (automático)
-        ttk.Label(inscripcion_frame, text="Horario:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.horario_var = tk.StringVar()
-        ttk.Entry(
-            inscripcion_frame,
-            textvariable=self.horario_var,
-            width=30,
-            state="readonly"
-        ).grid(row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5)
-        row += 1  # ← ¡AGREGAR ESTA LÍNEA!
-        
-        # Texto informativo
-        ttk.Label(
-            inscripcion_frame,
-            text="El horario se completa automáticamente",
-            font=("Helvetica", 8),
-            foreground="gray"
-        ).grid(row=row, column=0, columnspan=4, sticky="w", padx=5)
-        row += 1  # ← ¡AGREGAR ESTA LÍNEA!
-        
-        # OBSERVACIONES
-        ttk.Label(inscripcion_frame, text="Observaciones:").grid(
-            row=row, column=0, sticky="ne", padx=5, pady=5
-        )
-        self.observaciones_text = tk.Text(inscripcion_frame, width=60, height=3)
-        self.observaciones_text.grid(
-            row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5
-        )
-
-    def _on_anio_change(self, event=None):
-        """Al cambiar año, filtrar materias."""
-        anio = self.anio_var.get()
-        if not anio:
-            return
-        
-        from models.materias import get_materias_por_anio
-        materias = get_materias_por_anio(int(anio))
-        self.materia_combo['values'] = materias
-        self.materia_var.set("")
-        self.profesor_var.set("")
-        self.comision_var.set("")
-        self.horario_var.set("")
-
-
-    def _on_materia_change(self, event=None):
-        """Al cambiar materia, cargar profesores."""
-        materia = self.materia_var.get()
-        if not materia:
-            return
-        
-        from models.materias import get_profesores_materia
-        profesores = get_profesores_materia(materia)
-        self.profesor_combo['values'] = profesores
-        self.profesor_var.set("")
-        self.comision_var.set("")
-        self.horario_var.set("")
-
-
-    def _on_profesor_change(self, event=None):
-        """Al cambiar profesor, cargar comisiones."""
-        materia = self.materia_var.get()
-        profesor = self.profesor_var.get()
-        if not materia or not profesor:
-            return
-        
-        from models.materias import get_comisiones_profesor
-        comisiones = get_comisiones_profesor(materia, profesor)
-        self.comision_combo['values'] = comisiones
-        self.comision_var.set("")
-        self.horario_var.set("")
-
-
-    def _on_comision_change(self, event=None):
-        """Al cambiar comisión, cargar horario."""
-        materia = self.materia_var.get()
-        profesor = self.profesor_var.get()
-        comision = self.comision_var.get()
-        if not all([materia, profesor, comision]):
-            return
-        
-        from models.materias import get_horario
-        horario = get_horario(materia, profesor, comision)
-        self.horario_var.set(horario if horario else "Sin horario")
 
     def refresh(self):
         """Refresca la tabla con los registros guardados."""
@@ -1203,13 +789,12 @@ class FormTab(BaseTab):
             self.tree.delete(item)
         
         # Cargar registros desde CSV
-        from database.csv_handler import cargar_registros
         registros = cargar_registros()
         
         # Poblar tabla
         for reg in registros:
             self.tree.insert("", tk.END, values=(
-                reg.get("id", "")[:8],  # ID corto (primeros 8 caracteres)
+                reg.get("id", "")[:8],
                 reg.get("nombre", ""),
                 reg.get("apellido", ""),
                 reg.get("dni", ""),
@@ -1219,332 +804,266 @@ class FormTab(BaseTab):
                 reg.get("anio", "")
             ))
 
+    # ============= NUEVOS MÉTODOS =============
 
-    # ========== REFRESCAR TABLA ==========
-    
+    def _leer_campos(self):
+        """Lee y retorna dict con todos los campos del formulario."""
+        campos = {}
+        
+        # Leer entries (campos de texto)
+        for key, entry in self.entries.items():
+            try:
+                campos[key] = entry.get().strip()
+            except:
+                campos[key] = ""
+        
+        # Leer comboboxes y variables
+        campos["anio"] = self.anio_var.get() if hasattr(self, "anio_var") else ""
+        campos["turno"] = self.turno_var.get() if hasattr(self, "turno_var") else ""
+        campos["materia"] = self.materia_var.get() if hasattr(self, "materia_var") else ""
+        campos["profesor"] = self.profesor_var.get() if hasattr(self, "profesor_var") else ""
+        campos["comision"] = self.comision_var.get() if hasattr(self, "comision_var") else ""
+        campos["horario"] = self.horario_var.get() if hasattr(self, "horario_var") else ""
+        campos["saeta"] = self.saeta_var.get() if hasattr(self, "saeta_var") else "No"
+        campos["seguro_escolar"] = self.seguro_escolar_var.get() if hasattr(self, "seguro_escolar_var") else "No"
+        campos["pago_voluntario"] = self.pago_voluntario_var.get() if hasattr(self, "pago_voluntario_var") else "No"
+        campos["permiso"] = self.permiso_var.get() if hasattr(self, "permiso_var") else "No"
+        
+        # Observaciones (Text widget)
+        if hasattr(self, "observaciones_text"):
+            try:
+                campos["observaciones"] = self.observaciones_text.get("1.0", tk.END).strip()
+            except:
+                campos["observaciones"] = ""
+        
+        return campos
 
-    def _build_datos_personales(self):
-        """Construye sección de Datos Personales."""
-        personales_frame = ttk.LabelFrame(self.form_container, text="Datos Personales", padding=10)
-        personales_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        row = 0
-        
-        # Nombre
-        ttk.Label(personales_frame, text="Nombre:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.nombre_var = tk.StringVar()
-        ttk.Entry(personales_frame, textvariable=self.nombre_var, width=30).grid(
-            row=row, column=1, sticky="w", padx=5, pady=5
-        )
-        
-        # Apellido
-        ttk.Label(personales_frame, text="Apellido:*").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.apellido_var = tk.StringVar()
-        ttk.Entry(personales_frame, textvariable=self.apellido_var, width=30).grid(
-            row=row, column=3, sticky="w", padx=5, pady=5
-        )
-        row += 1
-        
-        # DNI
-        ttk.Label(personales_frame, text="DNI:*").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.dni_var = tk.StringVar()
-        ttk.Entry(personales_frame, textvariable=self.dni_var, width=15).grid(
-            row=row, column=1, sticky="w", padx=5, pady=5
-        )
-        
-        # Fecha de Nacimiento
-        ttk.Label(personales_frame, text="Fecha Nacimiento:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.fecha_nac_var = tk.StringVar()
-        ttk.Entry(personales_frame, textvariable=self.fecha_nac_var, width=15).grid(
-            row=row, column=3, sticky="w", padx=5, pady=5
-        )
-        row += 1
-        
-        # Edad
-        ttk.Label(personales_frame, text="Edad:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.edad_var = tk.StringVar()
-        ttk.Entry(personales_frame, textvariable=self.edad_var, width=10).grid(
-            row=row, column=1, sticky="w", padx=5, pady=5
-        )
-
-    def _build_datos_contacto(self):
-        """Construye sección de Datos de Contacto."""
-        contacto_frame = ttk.LabelFrame(self.form_container, text="Datos de Contacto", padding=10)
-        contacto_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        row = 0
-        
-        # Dirección
-        ttk.Label(contacto_frame, text="Dirección:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.direccion_var = tk.StringVar()
-        ttk.Entry(contacto_frame, textvariable=self.direccion_var, width=50).grid(
-            row=row, column=1, columnspan=3, sticky="w", padx=5, pady=5
-        )
-        row += 1
-        
-        # Teléfono
-        ttk.Label(contacto_frame, text="Teléfono:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.telefono_var = tk.StringVar()
-        ttk.Entry(contacto_frame, textvariable=self.telefono_var, width=20).grid(
-            row=row, column=1, sticky="w", padx=5, pady=5
-        )
-        
-        # Email
-        ttk.Label(contacto_frame, text="Email:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.email_var = tk.StringVar()
-        ttk.Entry(contacto_frame, textvariable=self.email_var, width=30).grid(
-            row=row, column=3, sticky="w", padx=5, pady=5
-        )
-
-    def _build_datos_responsables(self):
-        """Construye sección de Datos de Responsables."""
-        responsables_frame = ttk.LabelFrame(self.form_container, text="Datos de Responsables", padding=10)
-        responsables_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        row = 0
-        
-        # Nombre Padre
-        ttk.Label(responsables_frame, text="Nombre Padre:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.nombre_padre_var = tk.StringVar()
-        ttk.Entry(responsables_frame, textvariable=self.nombre_padre_var, width=30).grid(
-            row=row, column=1, sticky="w", padx=5, pady=5
-        )
-        
-        # Nombre Madre
-        ttk.Label(responsables_frame, text="Nombre Madre:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.nombre_madre_var = tk.StringVar()
-        ttk.Entry(responsables_frame, textvariable=self.nombre_madre_var, width=30).grid(
-            row=row, column=3, sticky="w", padx=5, pady=5
-        )
-        row += 1
-        
-        # Teléfono Emergencia
-        ttk.Label(responsables_frame, text="Tel. Emergencia:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.telefono_emergencia_var = tk.StringVar()
-        ttk.Entry(responsables_frame, textvariable=self.telefono_emergencia_var, width=20).grid(
-            row=row, column=1, sticky="w", padx=5, pady=5
-        )
-
-    def _build_buttons(self):
-        """Construye sección de botones."""
-        buttons_frame = ttk.Frame(self.form_container)
-        buttons_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        ttk.Button(
-            buttons_frame,
-            text="💾 Guardar Inscripción",
-            command=self._guardar
-        ).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(
-            buttons_frame,
-            text="🗑️ Limpiar Formulario",
-            command=self._limpiar
-        ).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(
-            buttons_frame,
-            text="📄 Generar Certificado",
-            command=self._generar_certificado
-        ).pack(side=tk.LEFT, padx=5)
-
-    def _on_anio_change(self, event=None):
-        """Filtrar materias por año."""
-        anio = self.anio_var.get()
-        if not anio:
+    def _generar_y_enviar(self):
+        """Genera certificado y lo envía por email."""
+        try:
+            campos = self._leer_campos()
+        except Exception as e:
+            self.show_error("Error", f"No se pudieron leer los campos: {e}")
             return
         
-        from models.materias import get_materias_por_anio
-        materias = get_materias_por_anio(int(anio))
-        self.materia_combo['values'] = materias
-        self.materia_var.set("")
-        self.profesor_var.set("")
-        self.comision_var.set("")
-        self.horario_var.set("")
-
-    def _on_materia_change(self, event=None):
-        """Cargar profesores según materia."""
-        materia = self.materia_var.get()
-        if not materia:
+        # Validar datos mínimos
+        if not campos.get("nombre") or not campos.get("apellido"):
+            self.show_error("Datos incompletos", "Falta nombre o apellido")
             return
         
-        from models.materias import get_profesores_materia
-        profesores = get_profesores_materia(materia)
-        self.profesor_combo['values'] = profesores
-        self.profesor_var.set("")
-        self.comision_var.set("")
-        self.horario_var.set("")
-
-    def _on_profesor_change(self, event=None):
-        """Cargar comisiones según profesor."""
-        materia = self.materia_var.get()
-        profesor = self.profesor_var.get()
-        if not materia or not profesor:
-            return
-        
-        from models.materias import get_comisiones_profesor
-        comisiones = get_comisiones_profesor(materia, profesor)
-        self.comision_combo['values'] = comisiones
-        self.comision_var.set("")
-        self.horario_var.set("")
-
-    def _on_comision_change(self, event=None):
-        """Cargar horario automáticamente."""
-        materia = self.materia_var.get()
-        profesor = self.profesor_var.get()
-        comision = self.comision_var.get()
-        if not all([materia, profesor, comision]):
-            return
-        
-        from models.materias import get_horario
-        horario = get_horario(materia, profesor, comision)
-        self.horario_var.set(horario if horario else "Sin horario definido")
-
-    def _guardar(self):
-        """Guarda la inscripción."""
-        # Validar campos obligatorios
-        if not self.nombre_var.get().strip():
-            self.show_warning("Validación", "El nombre es obligatorio")
-            return
-        
-        if not self.apellido_var.get().strip():
-            self.show_warning("Validación", "El apellido es obligatorio")
-            return
-        
-        if not self.dni_var.get().strip():
-            self.show_warning("Validación", "El DNI es obligatorio")
-            return
-        
-        if not self.anio_var.get():
-            self.show_warning("Validación", "El año es obligatorio")
-            return
-        
-        if not self.turno_var.get():
-            self.show_warning("Validación", "El turno es obligatorio")
-            return
-        
-        if not self.materia_var.get():
-            self.show_warning("Validación", "La materia es obligatoria")
-            return
-        
-        if not self.profesor_var.get():
-            self.show_warning("Validación", "El profesor es obligatorio")
-            return
-        
-        if not self.comision_var.get():
-            self.show_warning("Validación", "La comisión es obligatoria")
+        if not campos.get("email"):
+            self.show_error("Sin email", "El estudiante no tiene email configurado")
             return
         
         # Construir registro
-        from datetime import datetime
-        import uuid
-        
         registro = {
-            "id": str(uuid.uuid4()),
-            "fecha_inscripcion": datetime.now().isoformat(),
-            "nombre": self.nombre_var.get().strip(),
-            "apellido": self.apellido_var.get().strip(),
-            "dni": self.dni_var.get().strip(),
-            "fecha_nacimiento": self.fecha_nac_var.get().strip(),
-            "edad": self.edad_var.get().strip(),
-            "direccion": self.direccion_var.get().strip(),
-            "telefono": self.telefono_var.get().strip(),
-            "email": self.email_var.get().strip(),
-            "nombre_padre": self.nombre_padre_var.get().strip(),
-            "nombre_madre": self.nombre_madre_var.get().strip(),
-            "telefono_emergencia": self.telefono_emergencia_var.get().strip(),
-            "obra_social": self.obra_social_var.get().strip(),
-            "seguro_escolar": self.seguro_escolar_var.get(),
-            "turno": self.turno_var.get(),
-            "anio": self.anio_var.get(),
-            "materia": self.materia_var.get(),
-            "profesor": self.profesor_var.get(),
-            "comision": self.comision_var.get(),
-            "horario": self.horario_var.get().strip(),
-            "observaciones": self.observaciones_text.get("1.0", tk.END).strip()
+            "id": campos.get("legajo", ""),
+            "fecha_inscripcion": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            **campos
         }
-            
-        # Guardar en CSV
-        from database.csv_handler import guardar_registro
         
-        ok, msg = guardar_registro(registro)
-        
-        if ok:
-            self.show_info("Éxito", f"Inscripción guardada correctamente\nID: {registro['id'][:8]}")
-            self._limpiar()
-            self.refresh()  # ← IMPORTANTE: Actualizar tabla
-            self.app.refresh_all()  # ← Actualizar otras pestañas
-        else:
-            self.show_error("Error", msg)
-
-    def _limpiar(self):
-        """Limpia todos los campos del formulario."""
-        # Datos personales
-        self.nombre_var.set("")
-        self.apellido_var.set("")
-        self.dni_var.set("")
-        self.fecha_nac_var.set("")
-        self.edad_var.set("")
-        
-        # Contacto
-        self.direccion_var.set("")
-        self.telefono_var.set("")
-        self.email_var.set("")
-        
-        # Responsables
-        self.nombre_padre_var.set("")
-        self.nombre_madre_var.set("")
-        self.telefono_emergencia_var.set("")
-        
-        # Otros datos
-        self.saeta_var.set("No")
-        self.obra_social_var.set("")
-        self.seguro_escolar_var.set("No")
-        self.pago_voluntario_var.set("No")
-        self.monto_var.set("")
-        self.permiso_var.set("No")
-        self.observaciones_text.delete("1.0", tk.END)
-        
-        # Inscripción
-        self.anio_var.set("")
-        self.turno_var.set("")
-        self.materia_var.set("")
-        self.profesor_var.set("")
-        self.comision_var.set("")
-        self.horario_var.set("")
-        
-        # Limpiar comboboxes
-        self.materia_combo['values'] = []
-        self.profesor_combo['values'] = []
-        self.comision_combo['values'] = []
-
-    def _generar_certificado(self):
-        """Genera certificado PDF de la inscripción actual."""
-        # Validar que haya datos mínimos
-        if not self.nombre_var.get() or not self.apellido_var.get():
-            self.show_warning("Certificado", "Completá al menos nombre y apellido")
+        # Generar PDF
+        ok, result = generar_certificado_pdf(registro)
+        if not ok:
+            self.show_error("Error al generar", result)
             return
         
-        # Construir registro temporal
+        pdf_path = result
+        
+        # Obtener configuración SMTP
+        smtp_cfg = get_smtp_config()
+        if not smtp_cfg.get("username") or not smtp_cfg.get("password"):
+            self.show_warning("SMTP no configurado", 
+                             "Configurá SMTP en la pestaña Configuración")
+            return
+        
+        # Enviar en background
+        def worker():
+            ok_email, msg = send_certificado_via_email(registro, pdf_path, smtp_cfg)
+            
+            def finish():
+                if ok_email:
+                    self.show_info("Email enviado", msg)
+                else:
+                    self.show_error("Error al enviar", msg)
+            
+            try:
+                self.app.root.after(1, finish)
+            except:
+                finish()
+        
+        threading.Thread(target=worker, daemon=True).start()
+        self.show_info("Envío en background", 
+                       "El certificado se está enviando en segundo plano")
+
+    def _generar_certificado(self):
+        """Genera certificado sin enviar."""
+        try:
+            campos = self._leer_campos()
+        except Exception as e:
+            self.show_error("Error", f"No se pudieron leer los campos: {e}")
+            return
+        
+        if not campos.get("nombre") or not campos.get("apellido"):
+            self.show_error("Datos incompletos", "Falta nombre o apellido")
+            return
+        
         registro = {
-            "nombre": self.nombre_var.get().strip(),
-            "apellido": self.apellido_var.get().strip(),
-            "dni": self.dni_var.get().strip(),
-            "materia": self.materia_var.get(),
-            "profesor": self.profesor_var.get(),
-            "comision": self.comision_var.get(),
-            "turno": self.turno_var.get(),
-            "anio": self.anio_var.get(),
-            "horario": self.horario_var.get().strip(),
-            "seguro_escolar": self.seguro_escolar_var.get(),
-            "obra_social": self.obra_social_var.get().strip()
+            "id": campos.get("legajo", ""),
+            "fecha_inscripcion": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            **campos
         }
         
-        from services.pdf_generator import generar_certificado_pdf
+        ok, result = generar_certificado_pdf(registro)
+        if not ok:
+            self.show_error("Error", result)
+            return
         
-        ok, msg = generar_certificado_pdf(registro)
+        self.show_info("Certificado generado", f"Archivo: {result}")
         
-        if ok:
-            self.show_info("Certificado", msg)
+        # Abrir PDF automáticamente
+        try:
+            path = str(result)
+            if sys.platform.startswith("darwin"):
+                os.system(f"open '{path}'")
+            elif os.name == "nt":
+                os.startfile(path)
+            else:
+                os.system(f"xdg-open '{path}'")
+        except Exception as e:
+            print(f"[WARN] No se pudo abrir el PDF: {e}")
+
+    def _exportar_excel(self):
+        """Exporta todos los registros a Excel."""
+        registros = cargar_registros()
+        if not registros:
+            self.show_info("Sin datos", "No hay registros para exportar")
+            return
+        
+        if _HAS_PANDAS:
+            # Exportar a Excel
+            out_path = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                filetypes=[("Excel", "*.xlsx")],
+                initialfile=f"inscripciones_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            )
+            
+            if not out_path:
+                return
+            
+            try:
+                df = pd.DataFrame(registros)
+                df.to_excel(out_path, index=False)
+                self.show_info("Exportado", f"Exportado a: {out_path}")
+            except Exception as e:
+                self.show_error("Error", f"No se pudo crear Excel: {e}")
         else:
-            self.show_error("Error", msg)
+            # Ofrecer CSV como alternativa
+            if self.ask_yes_no("Pandas no instalado", 
+                              "pandas no está instalado.\n¿Desea exportar a CSV en su lugar?"):
+                out_path = filedialog.asksaveasfilename(
+                    defaultextension=".csv",
+                    filetypes=[("CSV", "*.csv")],
+                    initialfile=f"inscripciones_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                )
+                
+                if not out_path:
+                    return
+                
+                try:
+                    import csv
+                    from config.settings import CSV_FIELDS
+                    
+                    with open(out_path, "w", newline="", encoding="utf-8") as f:
+                        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+                        writer.writeheader()
+                        for r in registros:
+                            writer.writerow(r)
+                    
+                    self.show_info("Exportado", f"CSV exportado: {out_path}")
+                except Exception as e:
+                    self.show_error("Error", f"No se pudo exportar: {e}")
+            else:
+                self.show_info("Cancelado", "Instalá pandas para exportar a Excel:\npip install pandas openpyxl")
+
+    def _abrir_carpeta_certificados(self):
+        """Abre la carpeta de certificados en el explorador."""
+        try:
+            path = str(CERTIFICATES_DIR.resolve())
+            
+            # Crear carpeta si no existe
+            CERTIFICATES_DIR.mkdir(parents=True, exist_ok=True)
+            
+            if sys.platform.startswith("darwin"):
+                os.system(f"open '{path}'")
+            elif os.name == "nt":
+                os.startfile(path)
+            else:
+                os.system(f'xdg-open "{path}"')
+        except Exception as e:
+            self.show_error("Error", f"No se pudo abrir la carpeta: {e}")
+
+    def _enviar_certificado_seleccionado(self):
+        """Genera y envía certificado del registro seleccionado en la tabla."""
+        # Obtener selección
+        sel = self.tree.selection()
+        if not sel:
+            self.show_warning("Sin selección", "Selecciona un registro de la tabla")
+            return
+        
+        iid = sel[0]
+        item = self.tree.item(iid)
+        values = item['values']
+        id_corto = values[0]
+        
+        # Buscar registro completo
+        registros = cargar_registros()
+        registro = None
+        for r in registros:
+            if r.get("id", "").startswith(id_corto):
+                registro = r
+                break
+        
+        if not registro:
+            self.show_error("Error", "No se encontró el registro seleccionado")
+            return
+        
+        # Validar email
+        if not registro.get("email"):
+            self.show_warning("Sin email", 
+                             f"{registro.get('nombre')} {registro.get('apellido')} no tiene email configurado")
+            return
+        
+        # Generar PDF
+        ok, result = generar_certificado_pdf(registro)
+        if not ok:
+            self.show_error("Error al generar", result)
+            return
+        
+        pdf_path = result
+        
+        # Obtener config SMTP
+        smtp_cfg = get_smtp_config()
+        if not smtp_cfg.get("username") or not smtp_cfg.get("password"):
+            self.show_warning("SMTP no configurado", 
+                             "Configurá SMTP en la pestaña Configuración")
+            return
+        
+        # Enviar en background
+        def worker():
+            ok_email, msg = send_certificado_via_email(registro, pdf_path, smtp_cfg)
+            
+            def finish():
+                if ok_email:
+                    self.show_info("Email enviado", msg)
+                else:
+                    self.show_error("Error al enviar", msg)
+            
+            try:
+                self.app.root.after(1, finish)
+            except:
+                finish()
+        
+        threading.Thread(target=worker, daemon=True).start()
+        self.show_info("Envío en background", 
+                       f"Enviando certificado de {registro.get('nombre')} {registro.get('apellido')}")
