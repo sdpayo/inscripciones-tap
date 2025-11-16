@@ -1,0 +1,25 @@
+# Core dependencies
+tkinter-tooltip==1.4.0
+
+# Data processing
+pandas>=2.0.0
+openpyxl>=3.1.0  # For Excel export
+
+# PDF generation
+reportlab>=4.0.0
+pillow>=10.0.0  # For image handling in PDFs
+
+# Email
+python-dotenv>=1.0.0  # For environment variables
+
+# Google Sheets integration
+gspread>=5.12.0
+google-auth>=2.23.0
+google-auth-oauthlib>=1.1.0
+google-auth-httplib2>=0.1.1
+
+# Database
+# Using SQLite (built-in with Python) for simplicity
+
+# Utilities
+python-dateutil>=2.8.2
