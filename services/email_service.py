@@ -1,21 +1,17 @@
 """Servicio de envío de emails."""
 import smtplib
-import json
 from email.message import EmailMessage
 from pathlib import Path
-from config.settings import settings
+from config.settings import settings, DATA_DIR
+
+# Configuración
+SMTP_CONFIG_FILE = DATA_DIR / "config.json"
+DEBUG = settings.get("app.debug", False)
+
 
 def load_smtp_config():
-    """Carga configuración SMTP desde archivo."""
-    if not SMTP_CONFIG_FILE.exists():
-        return {}
-    try:
-        with open(SMTP_CONFIG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as e:
-        if DEBUG:
-            print(f"[ERROR] load_smtp_config: {e}")
-        return {}
+    """Carga configuración SMTP desde config.json."""
+    return settings.get_section("smtp")
 
 
 def save_smtp_config(host, port, username, password, use_tls=True):
@@ -52,7 +48,7 @@ def send_certificado_via_email(registro, pdf_path, smtp_cfg=None):
         smtp_cfg = load_smtp_config()
     
     # Validar destinatario
-    to_addr = (registro.get("mail") or "").strip()
+    to_addr = (registro.get("email") or "").strip()
     if not to_addr:
         return False, "El registro no tiene email configurado."
     
