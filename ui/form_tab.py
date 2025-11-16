@@ -240,7 +240,21 @@ class FormTab(BaseTab):
         
         # Fila 5: Observaciones (compacto)
         ttk.Label(frame, text="Observaciones:").grid(row=4, column=0, sticky="ne", padx=2, pady=2)
-        self.observaciones_text = tk.Text(frame, width=50, height=2)
+        self.observaciones_text = tk.Text(
+            frame, 
+            width=50, 
+            height=2,
+            bg="#3C3C3C",           # Fondo gris oscuro
+            fg="#FFFFFF",           # Texto blanco
+            insertbackground="#FFFFFF",  # Cursor blanco
+            selectbackground="#505050",  # Selección gris
+            selectforeground="#FFFFFF",  # Texto seleccionado blanco
+            borderwidth=1,
+            relief="solid",
+            highlightthickness=1,
+            highlightcolor="#4A4A4A",
+            highlightbackground="#4A4A4A"
+        )
         self.observaciones_text.grid(row=4, column=1, columnspan=5, sticky="ew", padx=2, pady=2)
         
         frame.columnconfigure(5, weight=1)
@@ -345,9 +359,18 @@ class FormTab(BaseTab):
             self.tree.heading(col, text=col)
             self.tree.column(col, width=column_widths[col], anchor="w")
         
+        # Aplicar colores del tema oscuro al Treeview
+        self.tree.configure(
+            background="#1E1E1E",
+            foreground="#FFFFFF",
+            fieldbackground="#1E1E1E",
+            selectbackground="#505050",
+            selectforeground="#FFFFFF"
+        )
+        
         # Configurar tags para filas alternas
-        self.tree.tag_configure("evenrow", background="#FFFFFF")
-        self.tree.tag_configure("oddrow", background="#F8F9FA")
+        self.tree.tag_configure("oddrow", background="#1E1E1E", foreground="#FFFFFF")
+        self.tree.tag_configure("evenrow", background="#252525", foreground="#FFFFFF")
         
         # Pack
         self.tree.pack(side="left", fill="both", expand=True)
