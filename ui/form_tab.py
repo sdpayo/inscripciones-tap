@@ -429,6 +429,10 @@ class FormTab(BaseTab):
             self.tree.heading(col, text=col)
             self.tree.column(col, width=column_widths[col], anchor="w")
         
+        # Configurar tags para filas alternas
+        self.tree.tag_configure("evenrow", background="#FFFFFF")
+        self.tree.tag_configure("oddrow", background="#F8F9FA")
+        
         # Pack
         self.tree.pack(side="left", fill="both", expand=True)
         tree_scroll_y.pack(side="right", fill="y")
@@ -637,6 +641,7 @@ class FormTab(BaseTab):
         # Recargar registros filtrados
         registros = cargar_registros()
         
+        idx = 0
         for reg in registros:
             # Filtrar por texto en nombre, apellido o DNI
             nombre = reg.get("nombre", "").lower()
@@ -649,6 +654,7 @@ class FormTab(BaseTab):
                 search_text in dni or
                 search_text in materia):
                 
+                tag = "evenrow" if idx % 2 == 0 else "oddrow"
                 self.tree.insert("", tk.END, values=(
                     reg.get("id", "")[:8],
                     reg.get("nombre", ""),
@@ -658,7 +664,8 @@ class FormTab(BaseTab):
                     reg.get("profesor", ""),
                     reg.get("turno", ""),
                     reg.get("anio", "")
-                ))
+                ), tags=(tag,))
+                idx += 1
 
     def _editar_seleccionado(self):
         """Carga el registro seleccionado en el formulario para editar."""
@@ -791,8 +798,9 @@ class FormTab(BaseTab):
         # Cargar registros desde CSV
         registros = cargar_registros()
         
-        # Poblar tabla
-        for reg in registros:
+        # Poblar tabla con filas alternas
+        for idx, reg in enumerate(registros):
+            tag = "evenrow" if idx % 2 == 0 else "oddrow"
             self.tree.insert("", tk.END, values=(
                 reg.get("id", "")[:8],
                 reg.get("nombre", ""),
@@ -802,7 +810,7 @@ class FormTab(BaseTab):
                 reg.get("profesor", ""),
                 reg.get("turno", ""),
                 reg.get("anio", "")
-            ))
+            ), tags=(tag,))
 
     # ============= NUEVOS MÉTODOS =============
 

@@ -159,6 +159,10 @@ class ListadosTab(BaseTab):
         self.tree.column("turno", width=100)
         self.tree.column("año", width=60)
         
+        # Configurar tags para filas alternas
+        self.tree.tag_configure("evenrow", background="#FFFFFF")
+        self.tree.tag_configure("oddrow", background="#F8F9FA")
+        
         # Layout
         self.tree.grid(row=0, column=0, sticky="nsew")
         vsb.grid(row=0, column=1, sticky="ns")
@@ -247,8 +251,9 @@ class ListadosTab(BaseTab):
         for item in self.tree.get_children():
             self.tree.delete(item)
         
-        # Poblar tabla
-        for reg in registros:
+        # Poblar tabla con filas alternas
+        for idx, reg in enumerate(registros):
+            tag = "evenrow" if idx % 2 == 0 else "oddrow"
             self.tree.insert(
                 "",
                 tk.END,
@@ -261,7 +266,8 @@ class ListadosTab(BaseTab):
                     reg.get("comision", ""),
                     reg.get("turno", ""),
                     reg.get("anio", "")
-                )
+                ),
+                tags=(tag,)
             )
         
         # Actualizar estadísticas
@@ -468,9 +474,14 @@ class ListadosTab(BaseTab):
         tree.column("item", width=400)
         tree.column("cantidad", width=100)
         
-        # Poblar (ordenado por cantidad)
-        for item, cantidad in sorted(datos.items(), key=lambda x: x[1], reverse=True):
-            tree.insert("", tk.END, values=(item, cantidad))
+        # Configurar tags para filas alternas
+        tree.tag_configure("evenrow", background="#FFFFFF")
+        tree.tag_configure("oddrow", background="#F8F9FA")
+        
+        # Poblar (ordenado por cantidad) con filas alternas
+        for idx, (item, cantidad) in enumerate(sorted(datos.items(), key=lambda x: x[1], reverse=True)):
+            tag = "evenrow" if idx % 2 == 0 else "oddrow"
+            tree.insert("", tk.END, values=(item, cantidad), tags=(tag,))
         
         tree.pack(fill=tk.BOTH, expand=True)
     

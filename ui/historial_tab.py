@@ -220,6 +220,10 @@ class HistorialTab(BaseTab):
         self.tree.column("año", width=60)
         self.tree.column("acciones", width=100)
         
+        # Configurar tags para filas alternas
+        self.tree.tag_configure("evenrow", background="#FFFFFF")
+        self.tree.tag_configure("oddrow", background="#F8F9FA")
+        
         # Layout
         self.tree.grid(row=0, column=0, sticky="nsew")
         vsb.grid(row=0, column=1, sticky="ns")
@@ -228,10 +232,11 @@ class HistorialTab(BaseTab):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
         
-        # Poblar tabla
+        # Poblar tabla con filas alternas
         self._registros_historial = registros
-        for reg in registros:
+        for idx, reg in enumerate(registros):
             fecha = reg.get("fecha_inscripcion", "N/A")[:10]
+            row_tag = "evenrow" if idx % 2 == 0 else "oddrow"
             self.tree.insert(
                 "",
                 tk.END,
@@ -244,7 +249,7 @@ class HistorialTab(BaseTab):
                     reg.get("anio", ""),
                     "📄"  # Icono de certificado
                 ),
-                tags=(reg.get("id"),)
+                tags=(reg.get("id"), row_tag)
             )
         
         # Doble click para certificado
