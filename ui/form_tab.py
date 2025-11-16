@@ -359,15 +359,6 @@ class FormTab(BaseTab):
             self.tree.heading(col, text=col)
             self.tree.column(col, width=column_widths[col], anchor="w")
         
-        # Aplicar colores del tema oscuro al Treeview
-        self.tree.configure(
-            background="#1E1E1E",
-            foreground="#FFFFFF",
-            fieldbackground="#1E1E1E",
-            selectbackground="#505050",
-            selectforeground="#FFFFFF"
-        )
-        
         # Configurar tags para filas alternas
         self.tree.tag_configure("oddrow", background="#1E1E1E", foreground="#FFFFFF")
         self.tree.tag_configure("evenrow", background="#252525", foreground="#FFFFFF")
