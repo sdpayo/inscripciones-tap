@@ -220,15 +220,6 @@ class HistorialTab(BaseTab):
         self.tree.column("año", width=60)
         self.tree.column("acciones", width=100)
         
-        # Aplicar colores del tema oscuro al Treeview
-        self.tree.configure(
-            background="#1E1E1E",
-            foreground="#FFFFFF",
-            fieldbackground="#1E1E1E",
-            selectbackground="#505050",
-            selectforeground="#FFFFFF"
-        )
-        
         # Configurar tags para filas alternas
         self.tree.tag_configure("oddrow", background="#1E1E1E", foreground="#FFFFFF")
         self.tree.tag_configure("evenrow", background="#252525", foreground="#FFFFFF")
