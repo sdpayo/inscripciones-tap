@@ -32,6 +32,9 @@ class ListadosTab(BaseTab):
         botones_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
         
         self._build_botones(botones_frame)
+        
+        # Cargar datos iniciales
+        self._aplicar_filtros()
     
     def _build_filtros(self, parent):
         """Construye sección de filtros."""
@@ -41,6 +44,11 @@ class ListadosTab(BaseTab):
         # Extraer materias únicas que tienen inscripciones
         materias_con_inscripciones = sorted(set(
             reg.get("materia", "") for reg in registros if reg.get("materia")
+        ))
+        
+        # Extraer profesores únicos con inscripciones (inicialización)
+        profesores_con_inscripciones = sorted(set(
+            reg.get("profesor", "") for reg in registros if reg.get("profesor")
         ))
         
         # Grid layout para filtros
@@ -68,7 +76,7 @@ class ListadosTab(BaseTab):
         self.profesor_combo = ttk.Combobox(
             parent,
             textvariable=self.filtro_profesor_var,
-            values=["(Todos)"],
+            values=["(Todos)"] + profesores_con_inscripciones,
             state="readonly",
             width=40
         )
@@ -374,7 +382,17 @@ class ListadosTab(BaseTab):
             return
         
         try:
-            ok, msg = generar_listado_pdf(self._registros_actuales, filename)
+            # Obtener filtros actuales
+            filtro_materia = self.filtro_materia_var.get()
+            filtro_profesor = self.filtro_profesor_var.get()
+            
+            # Generar PDF con filtros
+            ok, msg = generar_listado_pdf(
+                self._registros_actuales, 
+                filename,
+                filtro_materia=filtro_materia,
+                filtro_profesor=filtro_profesor
+            )
             if ok:
                 self.show_info("PDF", msg)
             else:
