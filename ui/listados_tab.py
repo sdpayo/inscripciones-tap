@@ -35,63 +35,45 @@ class ListadosTab(BaseTab):
     
     def _build_filtros(self, parent):
         """Construye sección de filtros."""
+        # Cargar registros para obtener materias/profesores con inscripciones
+        registros = cargar_registros()
+        
+        # Extraer materias únicas que tienen inscripciones
+        materias_con_inscripciones = sorted(set(
+            reg.get("materia", "") for reg in registros if reg.get("materia")
+        ))
+        
         # Grid layout para filtros
         row = 0
         
         # Filtro por Materia
         ttk.Label(parent, text="Materia:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
         self.filtro_materia_var = tk.StringVar()
-        materia_combo = ttk.Combobox(
+        self.materia_combo = ttk.Combobox(
             parent,
             textvariable=self.filtro_materia_var,
-            values=["(Todas)"] + get_todas_materias(),
+            values=["(Todas)"] + materias_con_inscripciones,
             state="readonly",
             width=40
         )
-        materia_combo.grid(row=row, column=1, sticky="w", padx=5, pady=5)
-        materia_combo.set("(Todas)")
-        materia_combo.bind("<<ComboboxSelected>>", self._on_filtro_materia_change)
+        self.materia_combo.grid(row=row, column=1, columnspan=3, sticky="ew", padx=5, pady=5)
+        self.materia_combo.set("(Todas)")
+        self.materia_combo.bind("<<ComboboxSelected>>", self._on_filtro_materia_change)
+        
+        row += 1
         
         # Filtro por Profesor
-        ttk.Label(parent, text="Profesor:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
+        ttk.Label(parent, text="Profesor:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
         self.filtro_profesor_var = tk.StringVar()
         self.profesor_combo = ttk.Combobox(
             parent,
             textvariable=self.filtro_profesor_var,
             values=["(Todos)"],
             state="readonly",
-            width=30
+            width=40
         )
-        self.profesor_combo.grid(row=row, column=3, sticky="w", padx=5, pady=5)
+        self.profesor_combo.grid(row=row, column=1, columnspan=3, sticky="ew", padx=5, pady=5)
         self.profesor_combo.set("(Todos)")
-        
-        row += 1
-        
-        # Filtro por Turno
-        ttk.Label(parent, text="Turno:").grid(row=row, column=0, sticky="e", padx=5, pady=5)
-        self.filtro_turno_var = tk.StringVar()
-        turno_combo = ttk.Combobox(
-            parent,
-            textvariable=self.filtro_turno_var,
-            values=["(Todos)", "Mañana", "Tarde", "Vespertino", "Noche"],
-            state="readonly",
-            width=15
-        )
-        turno_combo.grid(row=row, column=1, sticky="w", padx=5, pady=5)
-        turno_combo.set("(Todos)")
-        
-        # Filtro por Año
-        ttk.Label(parent, text="Año:").grid(row=row, column=2, sticky="e", padx=5, pady=5)
-        self.filtro_anio_var = tk.StringVar()
-        anio_combo = ttk.Combobox(
-            parent,
-            textvariable=self.filtro_anio_var,
-            values=["(Todos)", "1", "2", "3", "4"],
-            state="readonly",
-            width=10
-        )
-        anio_combo.grid(row=row, column=3, sticky="w", padx=5, pady=5)
-        anio_combo.set("(Todos)")
         
         row += 1
         
@@ -200,15 +182,25 @@ class ListadosTab(BaseTab):
     # ========== HANDLERS ==========
     
     def _on_filtro_materia_change(self, event=None):
-        """Al cambiar materia, actualizar profesores."""
+        """Al cambiar materia, actualizar profesores con inscripciones."""
         materia = self.filtro_materia_var.get()
         
         if materia == "(Todas)":
-            self.profesor_combo['values'] = ["(Todos)"]
+            # Mostrar todos los profesores con inscripciones
+            registros = cargar_registros()
+            profesores_con_inscripciones = sorted(set(
+                reg.get("profesor", "") for reg in registros if reg.get("profesor")
+            ))
+            self.profesor_combo['values'] = ["(Todos)"] + profesores_con_inscripciones
             self.filtro_profesor_var.set("(Todos)")
         else:
-            profesores = get_profesores_materia(materia)
-            self.profesor_combo['values'] = ["(Todos)"] + profesores
+            # Filtrar profesores por materia seleccionada con inscripciones
+            registros = cargar_registros()
+            profesores_con_inscripciones = sorted(set(
+                reg.get("profesor", "") for reg in registros 
+                if reg.get("materia") == materia and reg.get("profesor")
+            ))
+            self.profesor_combo['values'] = ["(Todos)"] + profesores_con_inscripciones
             self.filtro_profesor_var.set("(Todos)")
     
     def _aplicar_filtros(self):
@@ -224,14 +216,6 @@ class ListadosTab(BaseTab):
         if profesor and profesor != "(Todos)":
             filtros["profesor"] = profesor
         
-        turno = self.filtro_turno_var.get()
-        if turno and turno != "(Todos)":
-            filtros["turno"] = turno
-        
-        anio = self.filtro_anio_var.get()
-        if anio and anio != "(Todos)":
-            filtros["anio"] = anio
-        
         # Obtener registros filtrados
         registros = exportar_listado(filtros)
         self._actualizar_tabla(registros)
@@ -240,9 +224,12 @@ class ListadosTab(BaseTab):
         """Limpia todos los filtros."""
         self.filtro_materia_var.set("(Todas)")
         self.filtro_profesor_var.set("(Todos)")
-        self.filtro_turno_var.set("(Todos)")
-        self.filtro_anio_var.set("(Todos)")
-        self.profesor_combo['values'] = ["(Todos)"]
+        # Recargar profesores con todas las inscripciones
+        registros = cargar_registros()
+        profesores_con_inscripciones = sorted(set(
+            reg.get("profesor", "") for reg in registros if reg.get("profesor")
+        ))
+        self.profesor_combo['values'] = ["(Todos)"] + profesores_con_inscripciones
         self._aplicar_filtros()
     
     def _actualizar_tabla(self, registros):
