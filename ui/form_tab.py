@@ -69,9 +69,6 @@ class FormTab(BaseTab):
         right_panel = ttk.Frame(main_container)
         main_container.add(right_panel, weight=1)
         self._build_table(right_panel)
-        
-        # Cargar turnos dinámicamente
-        self._cargar_turnos_disponibles()
 
     def _build_datos_estudiante_compact(self, parent):
         """Construye sección compacta de datos del estudiante."""
@@ -192,19 +189,13 @@ class FormTab(BaseTab):
         frame = ttk.LabelFrame(parent, text="Datos Materia", padding=5)
         frame.pack(fill=tk.X, pady=(5, 0))
         
-        # Fila 1: Año y Turno
+        # Fila 1: Año
         ttk.Label(frame, text="Año:").grid(row=0, column=0, sticky="e", padx=2, pady=2)
         self.anio_var = tk.StringVar()
         self.anio_combo = ttk.Combobox(frame, textvariable=self.anio_var, values=["1","2","3","4"], 
                                         state="readonly", width=8)
         self.anio_combo.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         self.anio_combo.bind("<<ComboboxSelected>>", self._on_anio_change)
-        
-        ttk.Label(frame, text="Turno:").grid(row=0, column=2, sticky="e", padx=2, pady=2)
-        self.turno_var = tk.StringVar()
-        self.turno_combo = ttk.Combobox(frame, textvariable=self.turno_var, values=[], 
-                     state="readonly", width=12)
-        self.turno_combo.grid(row=0, column=3, sticky="w", padx=2, pady=2)
         
         # Fila 2: Materia
         ttk.Label(frame, text="Materia:").grid(row=1, column=0, sticky="e", padx=2, pady=2)
@@ -457,28 +448,41 @@ class FormTab(BaseTab):
         self.horario_var.set("")
 
     def _on_comision_change(self, event=None):
-        """Al cambiar comisión, cargar horario y actualizar cupo."""
+        """Al cambiar comisión, cargar horario y obtener turno automáticamente."""
         materia = self.materia_var.get()
         profesor = self.profesor_var.get()
         comision = self.comision_var.get()
         if not all([materia, profesor, comision]):
             return
         
-        horario = get_horario(materia, profesor, comision)
-        self.horario_var.set(horario if horario else "Sin horario")
+        # Obtener info completa (incluye turno)
+        info = get_info_completa(materia, profesor, comision)
+        
+        if info:
+            # Obtener turno del CSV
+            turno = info.get("turno", "") or info.get("Turno", "")
+            
+            # Guardar turno internamente (para la base de datos)
+            if not hasattr(self, 'turno_var'):
+                self.turno_var = tk.StringVar()
+            self.turno_var.set(turno if turno else "")
+            
+            # Mostrar en horario
+            if turno:
+                horario_display = f"Turno: {turno}"
+            else:
+                horario_display = "Sin horario definido"
+            
+            self.horario_var.set(horario_display)
+        else:
+            self.horario_var.set("Sin horario")
+            if hasattr(self, 'turno_var'):
+                self.turno_var.set("")
         
         # Actualizar cupo disponible
         self._actualizar_cupo_disponible()
     
-    def _cargar_turnos_disponibles(self):
-        """Carga los turnos disponibles dinámicamente desde el CSV."""
-        try:
-            turnos = get_turnos_disponibles()
-            if turnos and hasattr(self, 'turno_combo'):
-                self.turno_combo['values'] = turnos
-        except Exception as e:
-            print(f"[WARN] No se pudieron cargar turnos: {e}")
-    
+
     def _actualizar_cupo_disponible(self):
         """Actualiza el label de cupo disponible."""
         materia = self.materia_var.get()
@@ -540,10 +544,6 @@ class FormTab(BaseTab):
         
         if not self.anio_var.get():
             self.show_warning("Validación", "El año es obligatorio")
-            return
-        
-        if not self.turno_var.get():
-            self.show_warning("Validación", "El turno es obligatorio")
             return
         
         if not self.materia_var.get():
@@ -649,7 +649,12 @@ class FormTab(BaseTab):
         self.pago_voluntario_var.set("No")
         self.permiso_var.set("No")
         self.anio_var.set("")
+        
+        # Turno se limpia aunque no esté visible
+        if not hasattr(self, 'turno_var'):
+            self.turno_var = tk.StringVar()
         self.turno_var.set("")
+        
         self.materia_var.set("")
         self.profesor_var.set("")
         self.comision_var.set("")
@@ -657,6 +662,9 @@ class FormTab(BaseTab):
         
         # Limpiar observaciones
         self.observaciones_text.delete("1.0", tk.END)
+        
+        # Limpiar cupo
+        self.cupo_label.config(text="")
 
     def _filtrar_tabla(self):
         """Filtra la tabla según el texto de búsqueda."""
