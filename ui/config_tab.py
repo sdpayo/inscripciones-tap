@@ -454,7 +454,13 @@ class ConfigTab(BaseTab):
             "from_addr": ""
         }
         
-        ok, msg = save_smtp_config(config)
+        ok, msg = save_smtp_config(
+            host=config["host"],
+            port=config["port"],
+            username=config["username"],
+            password=config["password"],
+            use_tls=config.get("use_tls", True)
+        )
         if ok:
             settings.update_section("smtp", config)
             self.show_info("✅ SMTP", "Configuración guardada correctamente.")
