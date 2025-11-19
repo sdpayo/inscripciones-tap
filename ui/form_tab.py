@@ -344,6 +344,9 @@ class FormTab(BaseTab):
         tree_scroll_y.config(command=self.tree.yview)
         tree_scroll_x.config(command=self.tree.xview)
         
+        # Diccionario para mapear items del tree a IDs reales
+        self.id_map = {}
+        
         # Configurar columnas (sin ID)
         column_widths = {
             "Nombre": 120,
@@ -658,6 +661,9 @@ class FormTab(BaseTab):
         for item in self.tree.get_children():
             self.tree.delete(item)
         
+        # Limpiar mapa de IDs
+        self.id_map = {}
+        
         # Recargar registros filtrados
         registros = cargar_registros()
         
@@ -685,8 +691,8 @@ class FormTab(BaseTab):
                     reg.get("turno", ""),
                     reg.get("anio", "")
                 ), tags=(tag,))
-                # Guardar ID completo asociado al item
-                self.tree.set(item_id, "#0", reg.get("id", ""))
+                # Guardar ID en diccionario interno
+                self.id_map[item_id] = reg.get("id", "")
                 idx += 1
 
     def _editar_seleccionado(self):
@@ -790,6 +796,9 @@ class FormTab(BaseTab):
         # Cargar registros desde CSV
         registros = cargar_registros()
         
+        # Limpiar mapa antes de recargar
+        self.id_map = {}
+        
         # Poblar tabla con filas alternas (sin ID visible)
         for idx, reg in enumerate(registros):
             tag = "evenrow" if idx % 2 == 0 else "oddrow"
@@ -802,12 +811,12 @@ class FormTab(BaseTab):
                 reg.get("turno", ""),
                 reg.get("anio", "")
             ), tags=(tag,))
-            # Guardar ID completo asociado al item (invisible para el usuario)
-            self.tree.set(item_id, "#0", reg.get("id", ""))
+            # Guardar ID en diccionario interno
+            self.id_map[item_id] = reg.get("id", "")
     
     def _get_id_from_item(self, item_id):
         """Obtiene el ID completo de un item del tree."""
-        return self.tree.set(item_id, "#0")
+        return self.id_map.get(item_id, "")
     
     def _cargar_estudiante_dobleclick(self, event):
         """Carga datos del estudiante (sin materia) al hacer doble click."""
