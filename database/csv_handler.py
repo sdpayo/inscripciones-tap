@@ -92,7 +92,7 @@ def guardar_todos_registros(registros: List[Dict]) -> tuple:
 def generar_id(registro=None):
     """
     Genera ID único basado en legajo + fecha + hora.
-    Formato: {LEGAJO}-{YYYYMMDD}-{HHMM}
+    Formato: {LEGAJO}_{YYYYMMDD}_{HHMMSS}
     
     Args:
         registro (dict, optional): Datos del registro (debe tener 'legajo' o 'dni')
@@ -115,10 +115,10 @@ def generar_id(registro=None):
     # Generar timestamp
     now = datetime.now()
     fecha = now.strftime("%Y%m%d")  # YYYYMMDD
-    hora = now.strftime("%H%M")      # HHMM
+    hora = now.strftime("%H%M%S")   # HHMMSS (con segundos)
     
-    # Formato: LEGAJO-FECHA-HORA
-    id_generado = f"{legajo}-{fecha}-{hora}"
+    # Formato: LEGAJO_FECHA_HORA
+    id_generado = f"{legajo}_{fecha}_{hora}"
     
     return id_generado
 

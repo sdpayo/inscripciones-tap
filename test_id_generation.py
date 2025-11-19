@@ -1,4 +1,4 @@
-"""Test nuevo sistema de generación de IDs con formato legajo-fecha-hora."""
+"""Test nuevo sistema de generación de IDs con formato legajo_fecha_hora."""
 import sys
 from datetime import datetime
 from database.csv_handler import generar_id, migrar_id_si_es_uuid
@@ -14,12 +14,12 @@ def test_generar_id_con_legajo():
     
     id_generado = generar_id(registro)
     
-    # Verificar formato: LEGAJO-YYYYMMDD-HHMM
-    partes = id_generado.split("-")
-    assert len(partes) == 3, f"ID debe tener 3 partes separadas por guiones, obtenido: {id_generado}"
+    # Verificar formato: LEGAJO_YYYYMMDD_HHMMSS
+    partes = id_generado.split("_")
+    assert len(partes) == 3, f"ID debe tener 3 partes separadas por guiones bajos, obtenido: {id_generado}"
     assert partes[0] == "13220", f"Primera parte debe ser el legajo, obtenido: {partes[0]}"
     assert len(partes[1]) == 8, f"Fecha debe tener 8 dígitos (YYYYMMDD), obtenido: {partes[1]}"
-    assert len(partes[2]) == 4, f"Hora debe tener 4 dígitos (HHMM), obtenido: {partes[2]}"
+    assert len(partes[2]) == 6, f"Hora debe tener 6 dígitos (HHMMSS), obtenido: {partes[2]}"
     assert partes[1].isdigit(), "Fecha debe ser numérica"
     assert partes[2].isdigit(), "Hora debe ser numérica"
     
@@ -38,7 +38,7 @@ def test_generar_id_con_dni_fallback():
     id_generado = generar_id(registro)
     
     # Verificar que usa DNI como legajo
-    partes = id_generado.split("-")
+    partes = id_generado.split("_")
     assert partes[0] == "33668285", f"Debe usar DNI cuando no hay legajo, obtenido: {partes[0]}"
     
     print(f"✅ ID con DNI fallback generado correctamente: {id_generado}")
@@ -55,7 +55,7 @@ def test_generar_id_sin_datos():
     id_generado = generar_id(registro)
     
     # Verificar que usa TEMP
-    partes = id_generado.split("-")
+    partes = id_generado.split("_")
     assert partes[0] == "TEMP", f"Debe usar TEMP cuando no hay legajo ni DNI, obtenido: {partes[0]}"
     
     print(f"✅ ID TEMP generado correctamente: {id_generado}")
@@ -67,7 +67,7 @@ def test_generar_id_sin_registro():
     id_generado = generar_id()
     
     # Verificar que funciona sin parámetros
-    partes = id_generado.split("-")
+    partes = id_generado.split("_")
     assert partes[0] == "TEMP", "Debe usar TEMP cuando no hay registro"
     
     print(f"✅ ID sin registro generado correctamente: {id_generado}")
@@ -89,7 +89,7 @@ def test_migrar_uuid_a_nuevo_formato():
     nuevo_id = registro_migrado.get("id")
     assert nuevo_id != "deaa95af-a3ec-4b4a-b075-f70e80bcfe0c", "ID debe haber cambiado"
     assert "13220" in nuevo_id, f"Nuevo ID debe contener el legajo, obtenido: {nuevo_id}"
-    assert nuevo_id.count("-") == 2, f"Nuevo ID debe tener formato LEGAJO-FECHA-HORA, obtenido: {nuevo_id}"
+    assert nuevo_id.count("_") == 2, f"Nuevo ID debe tener formato LEGAJO_FECHA_HORA, obtenido: {nuevo_id}"
     
     print(f"✅ ID UUID migrado correctamente: deaa95af... -> {nuevo_id}")
     return True
@@ -97,8 +97,9 @@ def test_migrar_uuid_a_nuevo_formato():
 
 def test_no_migrar_id_nuevo_formato():
     """Test: No migrar ID que ya está en nuevo formato."""
+    # Probar con formato nuevo con guiones bajos
     registro = {
-        "id": "13220-20251116-2129",
+        "id": "13220_20251116_212900",
         "legajo": "13220",
         "nombre": "Damian"
     }
@@ -106,7 +107,7 @@ def test_no_migrar_id_nuevo_formato():
     registro_migrado = migrar_id_si_es_uuid(registro)
     
     # Verificar que el ID no cambió
-    assert registro_migrado.get("id") == "13220-20251116-2129", "ID en nuevo formato no debe cambiar"
+    assert registro_migrado.get("id") == "13220_20251116_212900", "ID en nuevo formato no debe cambiar"
     
     print(f"✅ ID en nuevo formato no fue modificado: {registro_migrado.get('id')}")
     return True
@@ -116,7 +117,7 @@ def test_formato_fecha_hora_correcto():
     """Test: Verificar que fecha y hora son válidas."""
     registro = {"legajo": "12345"}
     id_generado = generar_id(registro)
-    partes = id_generado.split("-")
+    partes = id_generado.split("_")
     
     # Verificar que la fecha es válida
     fecha_str = partes[1]
@@ -126,10 +127,10 @@ def test_formato_fecha_hora_correcto():
     except ValueError:
         raise AssertionError(f"Fecha inválida: {fecha_str}")
     
-    # Verificar que la hora es válida
+    # Verificar que la hora es válida (HHMMSS)
     hora_str = partes[2]
     try:
-        datetime.strptime(hora_str, "%H%M")
+        datetime.strptime(hora_str, "%H%M%S")
         print(f"✅ Hora válida: {hora_str}")
     except ValueError:
         raise AssertionError(f"Hora inválida: {hora_str}")
@@ -145,7 +146,7 @@ def test_limpieza_caracteres_especiales():
     }
     
     id_generado = generar_id(registro)
-    partes = id_generado.split("-")
+    partes = id_generado.split("_")
     
     # Verificar que solo quedan alfanuméricos
     assert partes[0] == "ABC123456", f"Legajo debe contener solo alfanuméricos, obtenido: {partes[0]}"
