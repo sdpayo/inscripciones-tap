@@ -204,6 +204,38 @@ def generar_certificado_pdf(registro, output_path=None):
             c.drawString(margin_left, y, f"Obra social: {obra_social}")
             y -= 15
         
+        # Pago voluntario
+        pago_voluntario = registro.get("pago_voluntario", "No")
+        if pago_voluntario and pago_voluntario.lower() in ("sí", "si", "yes", "s", "1", "true"):
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(margin_left, y, "✓ Pago voluntario")
+            y -= 15
+            c.setFont("Helvetica", 10)
+            
+            # Mostrar monto si existe
+            monto = registro.get("monto", "")
+            if monto:
+                # Formatear monto como moneda
+                try:
+                    # Intentar convertir a número y formatear
+                    if isinstance(monto, str):
+                        # Remover caracteres no numéricos excepto punto y coma
+                        monto_clean = monto.replace("$", "").replace(",", "").strip()
+                        if monto_clean:
+                            monto_num = float(monto_clean)
+                            monto_formatted = f"${monto_num:,.2f}"
+                        else:
+                            monto_formatted = monto
+                    else:
+                        monto_num = float(monto)
+                        monto_formatted = f"${monto_num:,.2f}"
+                except (ValueError, TypeError):
+                    # Si no se puede convertir, usar el valor original
+                    monto_formatted = f"${monto}"
+                
+                c.drawString(margin_left, y, f"Monto: {monto_formatted}")
+                y -= 15
+        
         y -= 20
         
         # === FECHAS ===

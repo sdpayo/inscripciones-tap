@@ -26,6 +26,7 @@ from services.validators import (
 )
 from services.pdf_generator import generar_certificado_pdf
 from services.email_service import send_certificado_via_email, get_smtp_config
+from services.google_sheets import sync_in_background
 from config.settings import settings, CERTIFICATES_DIR
 
 # Detectar pandas
@@ -622,6 +623,10 @@ class FormTab(BaseTab):
         # Guardar
         try:
             guardar_registro(registro)
+            
+            # Sync to Google Sheets in background (non-blocking)
+            sync_in_background(registro, operation='insert')
+            
             mensaje_exito = f"Inscripción guardada correctamente\nID: {nuevo_id}"
             if en_lista_espera == "Sí":
                 mensaje_exito += "\n⚠️ INSCRIPTO EN LISTA DE ESPERA"
@@ -904,23 +909,30 @@ class FormTab(BaseTab):
         if not self.ask_yes_no("Confirmar eliminación", mensaje):
             return
         
-        # Obtener IDs a eliminar
+        # Obtener IDs a eliminar y registros completos
         ids_to_delete = []
+        registros_a_eliminar = []
         for item_id in selection:
             reg_id = self._get_id_from_item(item_id)
             ids_to_delete.append(reg_id)
         
         # Cargar registros y filtrar
         registros = cargar_registros()
-        registros_filtrados = [
-            reg for reg in registros 
-            if reg.get("id") not in ids_to_delete
-        ]
+        registros_filtrados = []
+        for reg in registros:
+            if reg.get("id") in ids_to_delete:
+                registros_a_eliminar.append(reg)
+            else:
+                registros_filtrados.append(reg)
         
         from database.csv_handler import guardar_todos_registros
         ok, msg = guardar_todos_registros(registros_filtrados)
         
         if ok:
+            # Sync deletions to Google Sheets in background
+            for registro in registros_a_eliminar:
+                sync_in_background(registro, operation='delete')
+            
             self.show_info("Eliminado", f"{count} registro(s) eliminado(s) correctamente")
             self.refresh()
             self.app.refresh_all()
