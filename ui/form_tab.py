@@ -661,6 +661,9 @@ class FormTab(BaseTab):
         for item in self.tree.get_children():
             self.tree.delete(item)
         
+        # Limpiar mapa de IDs
+        self.id_map = {}
+        
         # Recargar registros filtrados
         registros = cargar_registros()
         
