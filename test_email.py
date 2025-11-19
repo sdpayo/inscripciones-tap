@@ -13,7 +13,13 @@ config_test = {
     "from_name": "Escuela Test"
 }
 
-ok, msg = save_smtp_config(config_test)
+ok, msg = save_smtp_config(
+    host=config_test["host"],
+    port=config_test["port"],
+    username=config_test["username"],
+    password=config_test["password"],
+    use_tls=config_test.get("use_tls", True)
+)
 assert ok, msg
 print("✅ Config SMTP guardada")
 
