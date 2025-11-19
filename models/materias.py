@@ -159,6 +159,22 @@ def buscar_materias(texto):
     return sorted(list(set(resultados)))
 
 
+def get_turnos_disponibles():
+    """
+    Obtiene lista de turnos únicos disponibles desde el CSV.
+    Returns:
+        list: Lista de turnos disponibles
+    """
+    turnos = set()
+    for mat in MATERIAS:
+        turno = mat.get("turno", "")
+        if turno:
+            turnos.add(turno)
+    
+    # Ordenar para tener consistencia
+    return sorted(list(turnos))
+
+
 def get_estadisticas():
     """
     Obtiene estadísticas de las materias cargadas.

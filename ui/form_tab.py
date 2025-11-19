@@ -9,14 +9,16 @@ from ui.base_tab import BaseTab
 from database.csv_handler import (
     cargar_registros, guardar_registro, 
     actualizar_registro, eliminar_registro,
-    generar_id
+    generar_id, contar_inscripciones_materia
 )
 from models.materias import (
     get_todas_materias,
     get_materias_por_anio,
     get_profesores_materia,
     get_comisiones_profesor,
-    get_horario
+    get_horario,
+    get_turnos_disponibles,
+    get_info_completa
 )
 from services.validators import (
     validar_dni, validar_email, validar_telefono,
@@ -51,23 +53,12 @@ class FormTab(BaseTab):
         form_main = ttk.Frame(left_panel)
         form_main.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Contenedor para las 2 columnas superiores
-        columns_container = ttk.Frame(form_main)
-        columns_container.pack(fill=tk.BOTH, expand=True)
+        # Construir secciones en flujo vertical
+        self._build_datos_estudiante_compact(form_main)
+        self._build_datos_responsable_compact(form_main)
+        self._build_datos_inscripcion_compact(form_main)
         
-        # Columnas
-        left_column = ttk.Frame(columns_container)
-        left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
-        
-        right_column = ttk.Frame(columns_container)
-        right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
-        
-        # Construir secciones en columnas
-        self._build_datos_estudiante_compact(left_column)
-        self._build_datos_responsable_compact(right_column)
-        self._build_datos_inscripcion_compact(left_column)
-        
-        # Materia section full-width below columns
+        # Materia section full-width below
         self._build_datos_materia_full_width(form_main)
         
         # Botones abajo
@@ -77,6 +68,9 @@ class FormTab(BaseTab):
         right_panel = ttk.Frame(main_container)
         main_container.add(right_panel, weight=1)
         self._build_table(right_panel)
+        
+        # Cargar turnos dinámicamente
+        self._cargar_turnos_disponibles()
 
     def _build_datos_estudiante_compact(self, parent):
         """Construye sección compacta de datos del estudiante."""
@@ -207,8 +201,9 @@ class FormTab(BaseTab):
         
         ttk.Label(frame, text="Turno:").grid(row=0, column=2, sticky="e", padx=2, pady=2)
         self.turno_var = tk.StringVar()
-        ttk.Combobox(frame, textvariable=self.turno_var, values=["Mañana","Tarde"], 
-                     state="readonly", width=12).grid(row=0, column=3, sticky="w", padx=2, pady=2)
+        self.turno_combo = ttk.Combobox(frame, textvariable=self.turno_var, values=[], 
+                     state="readonly", width=12)
+        self.turno_combo.grid(row=0, column=3, sticky="w", padx=2, pady=2)
         
         # Fila 2: Materia
         ttk.Label(frame, text="Materia:").grid(row=1, column=0, sticky="e", padx=2, pady=2)
@@ -218,25 +213,30 @@ class FormTab(BaseTab):
         self.materia_combo.grid(row=1, column=1, columnspan=5, sticky="ew", padx=2, pady=2)
         self.materia_combo.bind("<<ComboboxSelected>>", self._on_materia_change)
         
-        # Fila 3: Comisión y Profesor
-        ttk.Label(frame, text="Comisión:").grid(row=2, column=0, sticky="e", padx=2, pady=2)
-        self.comision_var = tk.StringVar()
-        self.comision_combo = ttk.Combobox(frame, textvariable=self.comision_var, values=[], 
-                                            state="readonly", width=12)
-        self.comision_combo.grid(row=2, column=1, sticky="w", padx=2, pady=2)
-        self.comision_combo.bind("<<ComboboxSelected>>", self._on_comision_change)
-        
-        ttk.Label(frame, text="Profesor/a:").grid(row=2, column=2, sticky="e", padx=2, pady=2)
+        # Fila 3: Profesor y Comisión (Comisión después de Profesor)
+        ttk.Label(frame, text="Profesor/a:").grid(row=2, column=0, sticky="e", padx=2, pady=2)
         self.profesor_var = tk.StringVar()
         self.profesor_combo = ttk.Combobox(frame, textvariable=self.profesor_var, values=[], 
                                             state="readonly", width=25)
-        self.profesor_combo.grid(row=2, column=3, columnspan=3, sticky="ew", padx=2, pady=2)
+        self.profesor_combo.grid(row=2, column=1, columnspan=2, sticky="ew", padx=2, pady=2)
         self.profesor_combo.bind("<<ComboboxSelected>>", self._on_profesor_change)
         
-        # Fila 4: Horario
+        ttk.Label(frame, text="Comisión:").grid(row=2, column=3, sticky="e", padx=2, pady=2)
+        self.comision_var = tk.StringVar()
+        self.comision_combo = ttk.Combobox(frame, textvariable=self.comision_var, values=[], 
+                                            state="readonly", width=12)
+        self.comision_combo.grid(row=2, column=4, sticky="w", padx=2, pady=2)
+        self.comision_combo.bind("<<ComboboxSelected>>", self._on_comision_change)
+        
+        # Fila 4: Horario y Cupo
         ttk.Label(frame, text="Horario:").grid(row=3, column=0, sticky="e", padx=2, pady=2)
         self.horario_var = tk.StringVar()
-        ttk.Entry(frame, textvariable=self.horario_var, width=30, state="readonly").grid(row=3, column=1, columnspan=3, sticky="ew", padx=2, pady=2)
+        ttk.Entry(frame, textvariable=self.horario_var, width=30, state="readonly").grid(row=3, column=1, columnspan=2, sticky="ew", padx=2, pady=2)
+        
+        # Label para mostrar cupo disponible
+        ttk.Label(frame, text="Cupo:").grid(row=3, column=3, sticky="e", padx=2, pady=2)
+        self.cupo_label = ttk.Label(frame, text="Sin cupo definido", foreground="green")
+        self.cupo_label.grid(row=3, column=4, sticky="w", padx=2, pady=2)
         
         # Fila 5: Observaciones (compacto)
         ttk.Label(frame, text="Observaciones:").grid(row=4, column=0, sticky="ne", padx=2, pady=2)
@@ -329,23 +329,23 @@ class FormTab(BaseTab):
         tree_scroll_y = ttk.Scrollbar(table_frame, orient="vertical")
         tree_scroll_x = ttk.Scrollbar(table_frame, orient="horizontal")
         
-        # Treeview
-        columns = ("ID", "Nombre", "Apellido", "DNI", "Materia", "Profesor", "Turno", "Año")
+        # Treeview (sin ID visible, con selección múltiple)
+        columns = ("Nombre", "Apellido", "DNI", "Materia", "Profesor", "Turno", "Año")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
             show="headings",
             yscrollcommand=tree_scroll_y.set,
             xscrollcommand=tree_scroll_x.set,
+            selectmode="extended",  # Permite selección múltiple
             height=15
         )
         
         tree_scroll_y.config(command=self.tree.yview)
         tree_scroll_x.config(command=self.tree.xview)
         
-        # Configurar columnas
+        # Configurar columnas (sin ID)
         column_widths = {
-            "ID": 80,
             "Nombre": 120,
             "Apellido": 120,
             "DNI": 100,
@@ -362,6 +362,9 @@ class FormTab(BaseTab):
         # Configurar tags para filas alternas
         self.tree.tag_configure("oddrow", background="#1E1E1E", foreground="#FFFFFF")
         self.tree.tag_configure("evenrow", background="#252525", foreground="#FFFFFF")
+        
+        # Bind para doble click (cargar estudiante para reinscripción)
+        self.tree.bind("<Double-Button-1>", self._cargar_estudiante_dobleclick)
         
         # Pack
         self.tree.pack(side="left", fill="both", expand=True)
@@ -381,13 +384,13 @@ class FormTab(BaseTab):
         ttk.Button(
             buttons_frame,
             text="🗑️ Eliminar",
-            command=self._eliminar_seleccionado
+            command=self._eliminar_seleccionados
         ).pack(side=tk.LEFT, padx=2)
         
         ttk.Button(
             buttons_frame,
-            text="📄 Certificado",
-            command=self._generar_certificado_seleccionado
+            text="📄 Certificados",
+            command=self._generar_certificados_seleccionados
         ).pack(side=tk.LEFT, padx=2)
         
         # === NUEVOS BOTONES ===
@@ -399,8 +402,8 @@ class FormTab(BaseTab):
         
         ttk.Button(
             buttons_frame,
-            text="📧 Enviar certificado (seleccionado)",
-            command=self._enviar_certificado_seleccionado
+            text="📧 Enviar certificados",
+            command=self._enviar_certificados_seleccionados
         ).pack(side=tk.LEFT, padx=2)
         
         ttk.Button(
@@ -450,7 +453,7 @@ class FormTab(BaseTab):
         self.horario_var.set("")
 
     def _on_comision_change(self, event=None):
-        """Al cambiar comisión, cargar horario."""
+        """Al cambiar comisión, cargar horario y actualizar cupo."""
         materia = self.materia_var.get()
         profesor = self.profesor_var.get()
         comision = self.comision_var.get()
@@ -459,6 +462,62 @@ class FormTab(BaseTab):
         
         horario = get_horario(materia, profesor, comision)
         self.horario_var.set(horario if horario else "Sin horario")
+        
+        # Actualizar cupo disponible
+        self._actualizar_cupo_disponible()
+    
+    def _cargar_turnos_disponibles(self):
+        """Carga los turnos disponibles dinámicamente desde el CSV."""
+        try:
+            turnos = get_turnos_disponibles()
+            if turnos and hasattr(self, 'turno_combo'):
+                self.turno_combo['values'] = turnos
+        except Exception as e:
+            print(f"[WARN] No se pudieron cargar turnos: {e}")
+    
+    def _actualizar_cupo_disponible(self):
+        """Actualiza el label de cupo disponible."""
+        materia = self.materia_var.get()
+        profesor = self.profesor_var.get()
+        comision = self.comision_var.get()
+        
+        if not all([materia, profesor, comision]):
+            self.cupo_label.config(text="Sin cupo definido", foreground="lightgreen")
+            return
+        
+        # Obtener info completa para saber el cupo máximo
+        info = get_info_completa(materia, profesor, comision)
+        if not info or not info.get("cupo"):
+            self.cupo_label.config(text="Sin cupo definido", foreground="lightgreen")
+            return
+        
+        cupo_maximo = info.get("cupo", 0)
+        
+        # Contar inscripciones actuales (sin lista de espera)
+        inscripciones_actuales = contar_inscripciones_materia(materia, profesor, comision)
+        
+        # Calcular disponibles
+        cupo_disponible = cupo_maximo - inscripciones_actuales
+        
+        if cupo_disponible > 0:
+            # Hay cupo disponible
+            self.cupo_label.config(
+                text=f"Cupo: {cupo_disponible}/{cupo_maximo}",
+                foreground="green"
+            )
+        elif cupo_disponible == 0:
+            # Cupo completo
+            self.cupo_label.config(
+                text=f"Cupo completo ({cupo_maximo}/{cupo_maximo})",
+                foreground="orange"
+            )
+        else:
+            # Lista de espera
+            en_espera = abs(cupo_disponible)
+            self.cupo_label.config(
+                text=f"Lista de espera: {en_espera}",
+                foreground="red"
+            )
 
     def _guardar(self):
         """Guarda la inscripción."""
@@ -495,11 +554,39 @@ class FormTab(BaseTab):
             self.show_warning("Validación", "La comisión es obligatoria")
             return
         
-        # Construir registro
-        import uuid
+        # Verificar cupo antes de guardar
+        materia = self.materia_var.get()
+        profesor = self.profesor_var.get()
+        comision = self.comision_var.get()
+        
+        info = get_info_completa(materia, profesor, comision)
+        en_lista_espera = "No"
+        
+        if info and info.get("cupo"):
+            cupo_maximo = info.get("cupo", 0)
+            inscripciones_actuales = contar_inscripciones_materia(materia, profesor, comision)
+            
+            if inscripciones_actuales >= cupo_maximo:
+                # Cupo completo, preguntar si desea inscribir en lista de espera
+                mensaje = f"El cupo está completo ({cupo_maximo}/{cupo_maximo}).\n"
+                mensaje += "El estudiante será inscripto en LISTA DE ESPERA.\n¿Desea continuar?"
+                
+                if not self.ask_yes_no("Cupo completo", mensaje):
+                    return
+                
+                en_lista_espera = "Sí"
+        
+        # Construir registro básico para generar ID
+        registro_temp = {
+            "legajo": self.entries["legajo"].get().strip(),
+            "dni": self.entries["dni"].get().strip()
+        }
+        
+        # Generar ID con nuevo formato
+        nuevo_id = generar_id(registro_temp)
         
         registro = {
-            "id": str(uuid.uuid4()),
+            "id": nuevo_id,
             "fecha_inscripcion": datetime.now().isoformat(),
             "nombre": self.entries["nombre"].get().strip(),
             "apellido": self.entries["apellido"].get().strip(),
@@ -526,13 +613,16 @@ class FormTab(BaseTab):
             "comision": self.comision_var.get(),
             "horario": self.horario_var.get().strip(),
             "observaciones": self.observaciones_text.get("1.0", tk.END).strip(),
-            "en_lista_espera": "No"
+            "en_lista_espera": en_lista_espera
         }
         
         # Guardar
         try:
             guardar_registro(registro)
-            self.show_info("Éxito", f"Inscripción guardada correctamente\nID: {registro['id'][:8]}")
+            mensaje_exito = f"Inscripción guardada correctamente\nID: {nuevo_id}"
+            if en_lista_espera == "Sí":
+                mensaje_exito += "\n⚠️ INSCRIPTO EN LISTA DE ESPERA"
+            self.show_info("Éxito", mensaje_exito)
             self._limpiar()
             self.refresh()
             self.app.refresh_all()
@@ -585,8 +675,8 @@ class FormTab(BaseTab):
                 search_text in materia):
                 
                 tag = "evenrow" if idx % 2 == 0 else "oddrow"
-                self.tree.insert("", tk.END, values=(
-                    reg.get("id", "")[:8],
+                # Insertar sin ID, pero guardar ID completo en el item
+                item_id = self.tree.insert("", tk.END, values=(
                     reg.get("nombre", ""),
                     reg.get("apellido", ""),
                     reg.get("dni", ""),
@@ -595,6 +685,8 @@ class FormTab(BaseTab):
                     reg.get("turno", ""),
                     reg.get("anio", "")
                 ), tags=(tag,))
+                # Guardar ID completo asociado al item
+                self.tree.set(item_id, "#0", reg.get("id", ""))
                 idx += 1
 
     def _editar_seleccionado(self):
@@ -604,20 +696,20 @@ class FormTab(BaseTab):
             self.show_warning("Editar", "Selecciona un registro de la tabla")
             return
         
-        # Obtener valores de la fila seleccionada
-        item = self.tree.item(selection[0])
-        values = item['values']
-        
-        if not values:
+        # Advertencia si hay múltiples seleccionados
+        if len(selection) > 1:
+            self.show_warning("Editar", "Edición solo funciona con UN registro.\nSelecciona solo uno.")
             return
         
+        item_id = selection[0]
+        reg_id = self._get_id_from_item(item_id)
+        
         # Buscar registro completo por ID
-        id_corto = values[0]
         registros = cargar_registros()
         
         registro = None
         for reg in registros:
-            if reg.get("id", "").startswith(id_corto):
+            if reg.get("id") == reg_id:
                 registro = reg
                 break
         
@@ -625,7 +717,7 @@ class FormTab(BaseTab):
             self.show_error("Error", "No se encontró el registro completo")
             return
         
-        # Cargar datos en el formulario
+        # Cargar datos en el formulario (todos los campos)
         self.entries["nombre"].delete(0, tk.END)
         self.entries["nombre"].insert(0, registro.get("nombre", ""))
         
@@ -635,89 +727,59 @@ class FormTab(BaseTab):
         self.entries["dni"].delete(0, tk.END)
         self.entries["dni"].insert(0, registro.get("dni", ""))
         
-        if "fecha_nacimiento" in self.entries:
-            self.entries["fecha_nacimiento"].delete(0, tk.END)
-            self.entries["fecha_nacimiento"].insert(0, registro.get("fecha_nacimiento", ""))
+        self.entries["fecha_nacimiento"].delete(0, tk.END)
+        self.entries["fecha_nacimiento"].insert(0, registro.get("fecha_nacimiento", ""))
         
-        if "edad" in self.entries:
-            self.entries["edad"].delete(0, tk.END)
-            self.entries["edad"].insert(0, registro.get("edad", ""))
+        self.entries["edad"].delete(0, tk.END)
+        self.entries["edad"].insert(0, registro.get("edad", ""))
         
-        # ... cargar resto de campos ...
+        self.entries["legajo"].delete(0, tk.END)
+        self.entries["legajo"].insert(0, registro.get("legajo", ""))
+        
+        self.entries["telefono"].delete(0, tk.END)
+        self.entries["telefono"].insert(0, registro.get("telefono", ""))
+        
+        self.entries["direccion"].delete(0, tk.END)
+        self.entries["direccion"].insert(0, registro.get("direccion", ""))
+        
+        self.entries["email"].delete(0, tk.END)
+        self.entries["email"].insert(0, registro.get("email", ""))
+        
+        self.entries["nombre_padre"].delete(0, tk.END)
+        self.entries["nombre_padre"].insert(0, registro.get("nombre_padre", ""))
+        
+        self.entries["nombre_madre"].delete(0, tk.END)
+        self.entries["nombre_madre"].insert(0, registro.get("nombre_madre", ""))
+        
+        self.entries["telefono_emergencia"].delete(0, tk.END)
+        self.entries["telefono_emergencia"].insert(0, registro.get("telefono_emergencia", ""))
+        
+        self.entries["obra_social"].delete(0, tk.END)
+        self.entries["obra_social"].insert(0, registro.get("obra_social", ""))
+        
+        self.entries["monto"].delete(0, tk.END)
+        self.entries["monto"].insert(0, registro.get("monto", ""))
+        
+        self.saeta_var.set(registro.get("saeta", "No"))
+        self.seguro_escolar_var.set(registro.get("seguro_escolar", "No"))
+        self.pago_voluntario_var.set(registro.get("pago_voluntario", "No"))
+        self.permiso_var.set(registro.get("permiso", "No"))
+        
+        # Cargar datos de materia
+        self.anio_var.set(registro.get("anio", ""))
+        self.turno_var.set(registro.get("turno", ""))
+        self.materia_var.set(registro.get("materia", ""))
+        self.profesor_var.set(registro.get("profesor", ""))
+        self.comision_var.set(registro.get("comision", ""))
+        self.horario_var.set(registro.get("horario", ""))
+        
+        # Cargar observaciones
+        self.observaciones_text.delete("1.0", tk.END)
+        self.observaciones_text.insert("1.0", registro.get("observaciones", ""))
         
         self.show_info("Editar", "Registro cargado. Modifica los campos y guarda.")
 
-    def _eliminar_seleccionado(self):
-        """Elimina el registro seleccionado."""
-        selection = self.tree.selection()
-        if not selection:
-            self.show_warning("Eliminar", "Selecciona un registro de la tabla")
-            return
-        
-        item = self.tree.item(selection[0])
-        values = item['values']
-        
-        if not values:
-            return
-        
-        nombre = values[1]
-        apellido = values[2]
-        
-        if not self.ask_yes_no(
-            "Confirmar eliminación",
-            f"¿Estás seguro de eliminar la inscripción de {nombre} {apellido}?"
-        ):
-            return
-        
-        # Buscar y eliminar por ID
-        id_corto = values[0]
-        registros = cargar_registros()
-        
-        registros_filtrados = [
-            reg for reg in registros 
-            if not reg.get("id", "").startswith(id_corto)
-        ]
-        
-        from database.csv_handler import guardar_todos_registros
-        ok, msg = guardar_todos_registros(registros_filtrados)
-        
-        if ok:
-            self.show_info("Eliminado", "Registro eliminado correctamente")
-            self.refresh()
-            self.app.refresh_all()
-        else:
-            self.show_error("Error", msg)
 
-    def _generar_certificado_seleccionado(self):
-        """Genera certificado del registro seleccionado."""
-        selection = self.tree.selection()
-        if not selection:
-            self.show_warning("Certificado", "Selecciona un registro de la tabla")
-            return
-        
-        # Obtener ID y buscar registro completo
-        item = self.tree.item(selection[0])
-        values = item['values']
-        id_corto = values[0]
-        
-        registros = cargar_registros()
-        
-        registro = None
-        for reg in registros:
-            if reg.get("id", "").startswith(id_corto):
-                registro = reg
-                break
-        
-        if not registro:
-            self.show_error("Error", "No se encontró el registro")
-            return
-        
-        ok, msg = generar_certificado_pdf(registro)
-        
-        if ok:
-            self.show_info("Certificado", msg)
-        else:
-            self.show_error("Error", msg)
 
     def refresh(self):
         """Refresca la tabla con los registros guardados."""
@@ -728,11 +790,10 @@ class FormTab(BaseTab):
         # Cargar registros desde CSV
         registros = cargar_registros()
         
-        # Poblar tabla con filas alternas
+        # Poblar tabla con filas alternas (sin ID visible)
         for idx, reg in enumerate(registros):
             tag = "evenrow" if idx % 2 == 0 else "oddrow"
-            self.tree.insert("", tk.END, values=(
-                reg.get("id", "")[:8],
+            item_id = self.tree.insert("", tk.END, values=(
                 reg.get("nombre", ""),
                 reg.get("apellido", ""),
                 reg.get("dni", ""),
@@ -741,6 +802,200 @@ class FormTab(BaseTab):
                 reg.get("turno", ""),
                 reg.get("anio", "")
             ), tags=(tag,))
+            # Guardar ID completo asociado al item (invisible para el usuario)
+            self.tree.set(item_id, "#0", reg.get("id", ""))
+    
+    def _get_id_from_item(self, item_id):
+        """Obtiene el ID completo de un item del tree."""
+        return self.tree.set(item_id, "#0")
+    
+    def _cargar_estudiante_dobleclick(self, event):
+        """Carga datos del estudiante (sin materia) al hacer doble click."""
+        selection = self.tree.selection()
+        if not selection:
+            return
+        
+        item_id = selection[0]
+        reg_id = self._get_id_from_item(item_id)
+        
+        # Buscar registro completo
+        registros = cargar_registros()
+        registro = None
+        for reg in registros:
+            if reg.get("id") == reg_id:
+                registro = reg
+                break
+        
+        if not registro:
+            return
+        
+        # Cargar solo datos personales (no materia)
+        self.entries["nombre"].delete(0, tk.END)
+        self.entries["nombre"].insert(0, registro.get("nombre", ""))
+        
+        self.entries["apellido"].delete(0, tk.END)
+        self.entries["apellido"].insert(0, registro.get("apellido", ""))
+        
+        self.entries["dni"].delete(0, tk.END)
+        self.entries["dni"].insert(0, registro.get("dni", ""))
+        
+        self.entries["legajo"].delete(0, tk.END)
+        self.entries["legajo"].insert(0, registro.get("legajo", ""))
+        
+        self.entries["telefono"].delete(0, tk.END)
+        self.entries["telefono"].insert(0, registro.get("telefono", ""))
+        
+        self.entries["edad"].delete(0, tk.END)
+        self.entries["edad"].insert(0, registro.get("edad", ""))
+        
+        self.entries["direccion"].delete(0, tk.END)
+        self.entries["direccion"].insert(0, registro.get("direccion", ""))
+        
+        self.entries["email"].delete(0, tk.END)
+        self.entries["email"].insert(0, registro.get("email", ""))
+        
+        self.entries["fecha_nacimiento"].delete(0, tk.END)
+        self.entries["fecha_nacimiento"].insert(0, registro.get("fecha_nacimiento", ""))
+        
+        self.entries["nombre_padre"].delete(0, tk.END)
+        self.entries["nombre_padre"].insert(0, registro.get("nombre_padre", ""))
+        
+        self.entries["nombre_madre"].delete(0, tk.END)
+        self.entries["nombre_madre"].insert(0, registro.get("nombre_madre", ""))
+        
+        self.entries["telefono_emergencia"].delete(0, tk.END)
+        self.entries["telefono_emergencia"].insert(0, registro.get("telefono_emergencia", ""))
+        
+        self.entries["obra_social"].delete(0, tk.END)
+        self.entries["obra_social"].insert(0, registro.get("obra_social", ""))
+        
+        self.entries["monto"].delete(0, tk.END)
+        self.entries["monto"].insert(0, registro.get("monto", ""))
+        
+        self.saeta_var.set(registro.get("saeta", "No"))
+        self.seguro_escolar_var.set(registro.get("seguro_escolar", "No"))
+        self.pago_voluntario_var.set(registro.get("pago_voluntario", "No"))
+        self.permiso_var.set(registro.get("permiso", "No"))
+        
+        # NO cargar datos de materia (para reinscripción)
+        self.show_info("Datos cargados", 
+                      f"Datos de {registro.get('nombre')} {registro.get('apellido')} cargados.\n"
+                      "Selecciona nueva materia para reinscribir.")
+    
+    def _eliminar_seleccionados(self):
+        """Elimina los registros seleccionados (soporte multi-selección)."""
+        selection = self.tree.selection()
+        if not selection:
+            self.show_warning("Eliminar", "Selecciona al menos un registro")
+            return
+        
+        count = len(selection)
+        mensaje = f"¿Estás seguro de eliminar {count} inscripción(es)?"
+        
+        if not self.ask_yes_no("Confirmar eliminación", mensaje):
+            return
+        
+        # Obtener IDs a eliminar
+        ids_to_delete = []
+        for item_id in selection:
+            reg_id = self._get_id_from_item(item_id)
+            ids_to_delete.append(reg_id)
+        
+        # Cargar registros y filtrar
+        registros = cargar_registros()
+        registros_filtrados = [
+            reg for reg in registros 
+            if reg.get("id") not in ids_to_delete
+        ]
+        
+        from database.csv_handler import guardar_todos_registros
+        ok, msg = guardar_todos_registros(registros_filtrados)
+        
+        if ok:
+            self.show_info("Eliminado", f"{count} registro(s) eliminado(s) correctamente")
+            self.refresh()
+            self.app.refresh_all()
+        else:
+            self.show_error("Error", msg)
+    
+    def _generar_certificados_seleccionados(self):
+        """Genera certificados para todos los registros seleccionados."""
+        selection = self.tree.selection()
+        if not selection:
+            self.show_warning("Certificados", "Selecciona al menos un registro")
+            return
+        
+        count = len(selection)
+        exitosos = 0
+        
+        registros = cargar_registros()
+        
+        for item_id in selection:
+            reg_id = self._get_id_from_item(item_id)
+            
+            # Buscar registro completo
+            registro = None
+            for reg in registros:
+                if reg.get("id") == reg_id:
+                    registro = reg
+                    break
+            
+            if registro:
+                ok, msg = generar_certificado_pdf(registro)
+                if ok:
+                    exitosos += 1
+        
+        self.show_info("Certificados", f"{exitosos} de {count} certificado(s) generado(s)")
+    
+    def _enviar_certificados_seleccionados(self):
+        """Envía certificados por email para todos los seleccionados."""
+        selection = self.tree.selection()
+        if not selection:
+            self.show_warning("Enviar", "Selecciona al menos un registro")
+            return
+        
+        # Verificar SMTP
+        smtp_cfg = get_smtp_config()
+        if not smtp_cfg.get("username") or not smtp_cfg.get("password"):
+            self.show_warning("SMTP no configurado", 
+                             "Configurá SMTP en la pestaña Configuración")
+            return
+        
+        count = len(selection)
+        registros = cargar_registros()
+        
+        def worker():
+            exitosos = 0
+            for item_id in selection:
+                reg_id = self._get_id_from_item(item_id)
+                
+                # Buscar registro completo
+                registro = None
+                for reg in registros:
+                    if reg.get("id") == reg_id:
+                        registro = reg
+                        break
+                
+                if registro and registro.get("email"):
+                    # Generar PDF
+                    ok, result = generar_certificado_pdf(registro)
+                    if ok:
+                        pdf_path = result
+                        # Enviar email
+                        ok_email, msg = send_certificado_via_email(registro, pdf_path, smtp_cfg)
+                        if ok_email:
+                            exitosos += 1
+            
+            def finish():
+                self.show_info("Enviados", f"{exitosos} de {count} certificado(s) enviado(s)")
+            
+            try:
+                self.app.root.after(1, finish)
+            except:
+                finish()
+        
+        threading.Thread(target=worker, daemon=True).start()
+        self.show_info("Enviando", f"Enviando {count} certificado(s) en segundo plano...")
 
     # ============= NUEVOS MÉTODOS =============
 
@@ -941,67 +1196,3 @@ class FormTab(BaseTab):
         except Exception as e:
             self.show_error("Error", f"No se pudo abrir la carpeta: {e}")
 
-    def _enviar_certificado_seleccionado(self):
-        """Genera y envía certificado del registro seleccionado en la tabla."""
-        # Obtener selección
-        sel = self.tree.selection()
-        if not sel:
-            self.show_warning("Sin selección", "Selecciona un registro de la tabla")
-            return
-        
-        iid = sel[0]
-        item = self.tree.item(iid)
-        values = item['values']
-        id_corto = values[0]
-        
-        # Buscar registro completo
-        registros = cargar_registros()
-        registro = None
-        for r in registros:
-            if r.get("id", "").startswith(id_corto):
-                registro = r
-                break
-        
-        if not registro:
-            self.show_error("Error", "No se encontró el registro seleccionado")
-            return
-        
-        # Validar email
-        if not registro.get("email"):
-            self.show_warning("Sin email", 
-                             f"{registro.get('nombre')} {registro.get('apellido')} no tiene email configurado")
-            return
-        
-        # Generar PDF
-        ok, result = generar_certificado_pdf(registro)
-        if not ok:
-            self.show_error("Error al generar", result)
-            return
-        
-        pdf_path = result
-        
-        # Obtener config SMTP
-        smtp_cfg = get_smtp_config()
-        if not smtp_cfg.get("username") or not smtp_cfg.get("password"):
-            self.show_warning("SMTP no configurado", 
-                             "Configurá SMTP en la pestaña Configuración")
-            return
-        
-        # Enviar en background
-        def worker():
-            ok_email, msg = send_certificado_via_email(registro, pdf_path, smtp_cfg)
-            
-            def finish():
-                if ok_email:
-                    self.show_info("Email enviado", msg)
-                else:
-                    self.show_error("Error al enviar", msg)
-            
-            try:
-                self.app.root.after(1, finish)
-            except:
-                finish()
-        
-        threading.Thread(target=worker, daemon=True).start()
-        self.show_info("Envío en background", 
-                       f"Enviando certificado de {registro.get('nombre')} {registro.get('apellido')}")
