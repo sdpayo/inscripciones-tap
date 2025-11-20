@@ -337,7 +337,11 @@ def generar_certificado_pdf(registro, output_path=None):
 
 def generar_listado_pdf(registros, output_path, filtro_materia=None, filtro_profesor=None):
     """
+<<<<<<< HEAD
+    Genera listado de inscripciones en PDF con encabezado profesional.
+=======
     Genera listado de inscripciones en PDF con logo y encabezado mejorado.
+>>>>>>> 35881a2293d81defd7baf5ac87a9f0a29b2d78f3
     Args:
         registros (list): Lista de registros
         output_path (str): Ruta de salida
@@ -354,7 +358,23 @@ def generar_listado_pdf(registros, output_path, filtro_materia=None, filtro_prof
         from reportlab.lib.units import cm
         from reportlab.lib.enums import TA_CENTER, TA_LEFT
         
+                # Crear nombre de archivo dinámicamente
+
+                # Bloque NUEVO a agregar:
+        if not output_path or output_path in ("", " "):
+            nombre = (f"{(filtro_materia or 'Materia').strip()}_{(filtro_profesor or 'Profesor').strip()}_Lista.pdf"
+                      .replace(" ", "_")
+                      .replace("/", "_"))
+            output_path = nombre
+
         # Crear PDF en horizontal
+<<<<<<< HEAD
+        doc = SimpleDocTemplate(str(output_path), pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # === ENCABEZADO CON LOGO ===
+=======
         doc = SimpleDocTemplate(str(output_path), pagesize=landscape(A4),
                                 leftMargin=1*cm, rightMargin=1*cm,
                                 topMargin=1*cm, bottomMargin=1*cm)
@@ -362,6 +382,7 @@ def generar_listado_pdf(registros, output_path, filtro_materia=None, filtro_prof
         styles = getSampleStyleSheet()
         
         # === LOGO Y ENCABEZADO ===
+>>>>>>> 35881a2293d81defd7baf5ac87a9f0a29b2d78f3
         # Buscar logo
         logo_path = settings.get("pdf.logo_path", "")
         if not logo_path:
@@ -375,6 +396,67 @@ def generar_listado_pdf(registros, output_path, filtro_materia=None, filtro_prof
                     logo_path = str(p)
                     break
         
+<<<<<<< HEAD
+        # Agregar logo si existe
+        if logo_path and Path(logo_path).exists():
+            try:
+                img = Image(logo_path, width=3*cm, height=3*cm)
+                elements.append(img)
+                elements.append(Spacer(1, 0.3*cm))
+            except Exception as e:
+                print(f"[WARN] No se pudo cargar logo en PDF: {e}")
+        
+        # Título institucional
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            textColor=colors.HexColor('#003366'),
+            spaceAfter=6,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=styles['Normal'],
+            fontSize=12,
+            textColor=colors.HexColor('#003366'),
+            spaceAfter=12,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        title = Paragraph("Escuela Superior de Música N°6003", title_style)
+        subtitle = Paragraph('"José Lo Giudice"', subtitle_style)
+        elements.append(title)
+        elements.append(subtitle)
+        elements.append(Spacer(1, 0.3*cm))
+        
+        # Título del listado
+        listado_title_style = ParagraphStyle(
+            'ListadoTitle',
+            parent=styles['Heading2'],
+            fontSize=14,
+            textColor=colors.black,
+            spaceAfter=12,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        listado_title = Paragraph("LISTADO DE INSCRIPCIONES", listado_title_style)
+        elements.append(listado_title)
+        elements.append(Spacer(1, 0.3*cm))
+        
+        # Info de filtros aplicados
+        info_style = ParagraphStyle(
+            'InfoStyle',
+            parent=styles['Normal'],
+            fontSize=10,
+            spaceAfter=6,
+            alignment=TA_LEFT
+        )
+=======
         # Insertar logo si existe
         if logo_path and Path(logo_path).exists():
             try:
@@ -433,9 +515,31 @@ def generar_listado_pdf(registros, output_path, filtro_materia=None, filtro_prof
             filters_para = Paragraph(" | ".join(filter_text), filter_style)
             elements.append(filters_para)
             elements.append(Spacer(1, 0.3*cm))
+>>>>>>> 35881a2293d81defd7baf5ac87a9f0a29b2d78f3
         
-        # Info general
         fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+<<<<<<< HEAD
+        info_lines = [f"<b>Fecha de generación:</b> {fecha}"]
+        info_lines.append(f"<b>Total de inscripciones:</b> {len(registros)}")
+        
+        if filtro_materia and filtro_materia != "(Todas)":
+            info_lines.append(f"<b>Materia:</b> {filtro_materia}")
+        
+        if filtro_profesor and filtro_profesor != "(Todos)":
+            info_lines.append(f"<b>Profesor/a:</b> {filtro_profesor}")
+        
+        for line in info_lines:
+            elements.append(Paragraph(line, info_style))
+        
+        elements.append(Spacer(1, 0.5*cm))
+        
+        # === TABLA DE DATOS ===
+        # Ordenar registros por apellido (A-Z)
+        registros = sorted(registros, key=lambda x: x.get('apellido', '').lower())
+
+        # Encabezado: Apellido es la primera columna
+        headers = ['Apellido', 'Nombre', 'DNI', 'Mail', 'Legajo', 'Com', 'Turno', 'Año'] #'Materia', 'Profesor',
+=======
         info_style = ParagraphStyle(
             'InfoStyle',
             parent=styles['Normal'],
@@ -451,21 +555,50 @@ def generar_listado_pdf(registros, output_path, filtro_materia=None, filtro_prof
         # === TABLA DE DATOS MEJORADA ===
         # Headers
         headers = ['Nombre', 'Apellido', 'DNI', 'Materia', 'Profesor', 'Comisión', 'Turno', 'Año']
+>>>>>>> 35881a2293d81defd7baf5ac87a9f0a29b2d78f3
         data = [headers]
-        
-        # Filas
+
+        # Construir las filas
         for reg in registros:
             row = [
-                reg.get('nombre', '')[:15],  # Truncar para que entre
                 reg.get('apellido', '')[:15],
+                reg.get('nombre', '')[:15],
                 reg.get('dni', ''),
-                reg.get('materia', '')[:30],
-                reg.get('profesor', '')[:20],
+                reg.get('email', '')[:30] or reg.get('mail', '')[:30],
+                reg.get('legajo', '')[:15],
+                #reg.get('materia', '')[:30],
+                #reg.get('profesor', '')[:20],
                 reg.get('comision', ''),
                 reg.get('turno', '')[:10],
                 reg.get('anio', '') or reg.get('año', '')
             ]
             data.append(row)
+<<<<<<< HEAD
+
+        # Crear tabla
+        table = Table(data, repeatRows=1)
+        table.setStyle(TableStyle([
+            # Headers
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('TOPPADDING', (0, 0), (-1, 0), 8),
+            
+            # Cuerpo
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            
+            # Alternar colores de filas
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F0F0F0')]),
+=======
         
         # Crear tabla con estilo mejorado
         table = Table(data, colWidths=[3*cm, 3*cm, 2.5*cm, 5.5*cm, 4*cm, 2*cm, 2.5*cm, 1.5*cm])
@@ -498,9 +631,22 @@ def generar_listado_pdf(registros, output_path, filtro_materia=None, filtro_prof
             
             # Alternar colores de filas - más sutil
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')]),
+>>>>>>> 35881a2293d81defd7baf5ac87a9f0a29b2d78f3
         ]))
         
         elements.append(table)
+        
+        # Pie de página
+        elements.append(Spacer(1, 0.5*cm))
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=styles['Normal'],
+            fontSize=7,
+            textColor=colors.grey,
+            alignment=TA_CENTER
+        )
+        footer = Paragraph("Documento generado automáticamente por el Sistema de Inscripciones TAP", footer_style)
+        elements.append(footer)
         
         # Generar PDF
         doc.build(elements)

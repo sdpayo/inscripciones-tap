@@ -66,9 +66,11 @@ DEFAULT_CONFIG = {
         "password": ""
     },
     "google_sheets": {
-        "sheet_key": "",
-        "credentials_file": "credentials.json",
-        "auto_sync": False
+       "enabled": True,  # ← Agregar esto
+        "spreadsheet_id": "PEGA_AQUI_EL_ID_DE_TU_HOJA1LYzWjGeJeEzBylSU1eI7Sn4gsmT-FPNTflYIsJWfGEc",  # ← Cambiar nombre
+        "sheet_name": "Inscripciones",  # ← Agregar esto
+        "credentials_path": "credentials.json",  # ← Cambiar nombre
+        "auto_sync": True  # ← Cambiar a True para que sincronice automáticamente
     },
     "pdf": {
         "logo_path": "",
