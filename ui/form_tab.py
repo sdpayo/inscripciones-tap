@@ -69,9 +69,6 @@ class FormTab(BaseTab):
         right_panel = ttk.Frame(main_container)
         main_container.add(right_panel, weight=1)
         self._build_table(right_panel)
-        
-        # Cargar turnos dinámicamente
-        self._cargar_turnos_disponibles()
 
     def _build_datos_estudiante_compact(self, parent):
         """Construye sección compacta de datos del estudiante."""
@@ -192,7 +189,7 @@ class FormTab(BaseTab):
         frame = ttk.LabelFrame(parent, text="Datos Materia", padding=5)
         frame.pack(fill=tk.X, pady=(5, 0))
         
-        # Fila 1: Año y Turno
+        # Fila 1: Año (Turno se obtiene automáticamente)
         ttk.Label(frame, text="Año:").grid(row=0, column=0, sticky="e", padx=2, pady=2)
         self.anio_var = tk.StringVar()
         self.anio_combo = ttk.Combobox(frame, textvariable=self.anio_var, values=["1","2","3","4"], 
@@ -200,11 +197,8 @@ class FormTab(BaseTab):
         self.anio_combo.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         self.anio_combo.bind("<<ComboboxSelected>>", self._on_anio_change)
         
-        ttk.Label(frame, text="Turno:").grid(row=0, column=2, sticky="e", padx=2, pady=2)
+        # Turno se maneja internamente (sin combobox visible)
         self.turno_var = tk.StringVar()
-        self.turno_combo = ttk.Combobox(frame, textvariable=self.turno_var, values=[], 
-                     state="readonly", width=12)
-        self.turno_combo.grid(row=0, column=3, sticky="w", padx=2, pady=2)
         
         # Fila 2: Materia
         ttk.Label(frame, text="Materia:").grid(row=1, column=0, sticky="e", padx=2, pady=2)
@@ -464,8 +458,22 @@ class FormTab(BaseTab):
         if not all([materia, profesor, comision]):
             return
         
-        horario = get_horario(materia, profesor, comision)
-        self.horario_var.set(horario if horario else "Sin horario")
+        # Obtener información completa incluyendo turno
+        info = get_info_completa(materia, profesor, comision)
+        if info:
+            # Guardar turno internamente (no visible)
+            turno = info.get("turno", "")
+            if turno:
+                self.turno_var.set(turno)
+                # Mostrar en horario con formato "Turno: XXX"
+                self.horario_var.set(f"Turno: {turno}")
+            else:
+                self.turno_var.set("")
+                self.horario_var.set("Sin horario definido")
+        else:
+            # Fallback si no hay info
+            horario = get_horario(materia, profesor, comision)
+            self.horario_var.set(horario if horario else "Sin horario")
         
         # Actualizar cupo disponible
         self._actualizar_cupo_disponible()
@@ -542,9 +550,7 @@ class FormTab(BaseTab):
             self.show_warning("Validación", "El año es obligatorio")
             return
         
-        if not self.turno_var.get():
-            self.show_warning("Validación", "El turno es obligatorio")
-            return
+        # Turno se obtiene automáticamente, no es necesario validarlo
         
         if not self.materia_var.get():
             self.show_warning("Validación", "La materia es obligatoria")
