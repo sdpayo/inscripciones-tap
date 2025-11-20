@@ -46,6 +46,11 @@ class ListadosTab(BaseTab):
             reg.get("materia", "") for reg in registros if reg.get("materia")
         ))
         
+        # Extraer profesores únicos con inscripciones (inicialización)
+        profesores_con_inscripciones = sorted(set(
+            reg.get("profesor", "") for reg in registros if reg.get("profesor")
+        ))
+        
         # Grid layout para filtros
         row = 0
         
@@ -71,7 +76,7 @@ class ListadosTab(BaseTab):
         self.profesor_combo = ttk.Combobox(
             parent,
             textvariable=self.filtro_profesor_var,
-            values=["(Todos)"],
+            values=["(Todos)"] + profesores_con_inscripciones,
             state="readonly",
             width=40
         )
@@ -383,10 +388,18 @@ class ListadosTab(BaseTab):
             return
         
         try:
+<<<<<<< HEAD
             # Obtener filtros aplicados para incluir en el PDF
             filtro_materia = self.filtro_materia_var.get()
             filtro_profesor = self.filtro_profesor_var.get()
             
+=======
+            # Obtener filtros actuales
+            filtro_materia = self.filtro_materia_var.get()
+            filtro_profesor = self.filtro_profesor_var.get()
+            
+            # Generar PDF con filtros
+>>>>>>> 35881a2293d81defd7baf5ac87a9f0a29b2d78f3
             ok, msg = generar_listado_pdf(
                 self._registros_actuales, 
                 filename,

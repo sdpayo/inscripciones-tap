@@ -189,7 +189,11 @@ class FormTab(BaseTab):
         frame = ttk.LabelFrame(parent, text="Datos Materia", padding=5)
         frame.pack(fill=tk.X, pady=(5, 0))
         
+<<<<<<< HEAD
         # Fila 1: Año
+=======
+        # Fila 1: Año (Turno se obtiene automáticamente)
+>>>>>>> 35881a2293d81defd7baf5ac87a9f0a29b2d78f3
         ttk.Label(frame, text="Año:").grid(row=0, column=0, sticky="e", padx=2, pady=2)
         self.anio_var = tk.StringVar()
         self.anio_combo = ttk.Combobox(frame, textvariable=self.anio_var, values=["1","2","3","4"], 
@@ -197,6 +201,12 @@ class FormTab(BaseTab):
         self.anio_combo.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         self.anio_combo.bind("<<ComboboxSelected>>", self._on_anio_change)
         
+<<<<<<< HEAD
+=======
+        # Turno se maneja internamente (sin combobox visible)
+        self.turno_var = tk.StringVar()
+        
+>>>>>>> 35881a2293d81defd7baf5ac87a9f0a29b2d78f3
         # Fila 2: Materia
         ttk.Label(frame, text="Materia:").grid(row=1, column=0, sticky="e", padx=2, pady=2)
         self.materia_var = tk.StringVar()
@@ -455,6 +465,7 @@ class FormTab(BaseTab):
         if not all([materia, profesor, comision]):
             return
         
+<<<<<<< HEAD
         # Obtener info completa (incluye turno)
         info = get_info_completa(materia, profesor, comision)
         
@@ -478,6 +489,24 @@ class FormTab(BaseTab):
             self.horario_var.set("Sin horario")
             if hasattr(self, 'turno_var'):
                 self.turno_var.set("")
+=======
+        # Obtener información completa incluyendo turno
+        info = get_info_completa(materia, profesor, comision)
+        if info:
+            # Guardar turno internamente (no visible)
+            turno = info.get("turno", "")
+            if turno:
+                self.turno_var.set(turno)
+                # Mostrar en horario con formato "Turno: XXX"
+                self.horario_var.set(f"Turno: {turno}")
+            else:
+                self.turno_var.set("")
+                self.horario_var.set("Sin horario definido")
+        else:
+            # Fallback si no hay info
+            horario = get_horario(materia, profesor, comision)
+            self.horario_var.set(horario if horario else "Sin horario")
+>>>>>>> 35881a2293d81defd7baf5ac87a9f0a29b2d78f3
         
         # Actualizar cupo disponible
         self._actualizar_cupo_disponible()
@@ -546,6 +575,11 @@ class FormTab(BaseTab):
             self.show_warning("Validación", "El año es obligatorio")
             return
         
+<<<<<<< HEAD
+=======
+        # Turno se obtiene automáticamente, no es necesario validarlo
+        
+>>>>>>> 35881a2293d81defd7baf5ac87a9f0a29b2d78f3
         if not self.materia_var.get():
             self.show_warning("Validación", "La materia es obligatoria")
             return
