@@ -354,8 +354,17 @@ def generar_listado_pdf(registros, output_path, filtro_materia=None, filtro_prof
         from reportlab.lib.units import cm
         from reportlab.lib.enums import TA_CENTER, TA_LEFT
         
+                # Crear nombre de archivo dinámicamente
+
+                # Bloque NUEVO a agregar:
+        if not output_path or output_path in ("", " "):
+            nombre = (f"{(filtro_materia or 'Materia').strip()}_{(filtro_profesor or 'Profesor').strip()}_Lista.pdf"
+                      .replace(" ", "_")
+                      .replace("/", "_"))
+            output_path = nombre
+
         # Crear PDF en horizontal
-        doc = SimpleDocTemplate(str(output_path), pagesize=landscape(A4))
+        doc = SimpleDocTemplate(str(output_path), pagesize=A4)
         elements = []
         styles = getSampleStyleSheet()
         
@@ -449,24 +458,29 @@ def generar_listado_pdf(registros, output_path, filtro_materia=None, filtro_prof
         elements.append(Spacer(1, 0.5*cm))
         
         # === TABLA DE DATOS ===
-        # Headers
-        headers = ['Nombre', 'Apellido', 'DNI', 'Materia', 'Profesor/a', 'Comisión', 'Turno', 'Año']
+        # Ordenar registros por apellido (A-Z)
+        registros = sorted(registros, key=lambda x: x.get('apellido', '').lower())
+
+        # Encabezado: Apellido es la primera columna
+        headers = ['Apellido', 'Nombre', 'DNI', 'Mail', 'Legajo', 'Com', 'Turno', 'Año'] #'Materia', 'Profesor',
         data = [headers]
-        
-        # Filas
+
+        # Construir las filas
         for reg in registros:
             row = [
-                reg.get('nombre', '')[:15],
                 reg.get('apellido', '')[:15],
+                reg.get('nombre', '')[:15],
                 reg.get('dni', ''),
-                reg.get('materia', '')[:35],
-                reg.get('profesor', '')[:20],
+                reg.get('email', '')[:30] or reg.get('mail', '')[:30],
+                reg.get('legajo', '')[:15],
+                #reg.get('materia', '')[:30],
+                #reg.get('profesor', '')[:20],
                 reg.get('comision', ''),
-                reg.get('turno', '')[:12],
+                reg.get('turno', '')[:10],
                 reg.get('anio', '') or reg.get('año', '')
             ]
             data.append(row)
-        
+
         # Crear tabla
         table = Table(data, repeatRows=1)
         table.setStyle(TableStyle([
