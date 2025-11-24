@@ -205,5 +205,9 @@ class Settings:
 APP_TITLE = "Sistema de Inscripciones TAP"
 SCHOOL_NAME = "Escuela Superior de Música Nº6003"
 
+# Google Sheets / Service Account
+GOOGLE_SERVICE_ACCOUNT_FILE = "config/google_service_account.json"
+GOOGLE_SHEET_ID = "1LYzWjGeJeEzBylSU1eI7Sn4gsmT-FPNTflYIsJWfGEc"
+
 # Instancia global
 settings = Settings()

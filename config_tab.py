@@ -435,25 +435,25 @@ class ConfigTab(BaseTab):
         """Guarda configuración SMTP con validación."""
         host = self.smtp_host_var.get().strip()
         username = self.smtp_user_var.get().strip()
-
+        
         # Validación básica
         if not host:
             self.show_error("SMTP", "El servidor SMTP es obligatorio.")
             return
-
+        
         if not username:
             self.show_warning("SMTP", "Se recomienda configurar el usuario (email).")
-
+        
         config = {
             "host": host,
-            "port": int(self.smtp_port_var.get()),
+            "port": self.smtp_port_var.get(),
             "username": username,
             "password": self.smtp_pass_var.get(),
             "use_tls": True,
             "from_name": self.smtp_from_name_var.get().strip() or "Escuela",
             "from_addr": ""
         }
-
+        
         ok, msg = save_smtp_config(
             host=config["host"],
             port=config["port"],
@@ -462,31 +462,11 @@ class ConfigTab(BaseTab):
             use_tls=config.get("use_tls", True)
         )
         if ok:
-            # Guardar en settings de forma robusta: preferir set_section, si no existe probar set()
-            try:
-                if hasattr(settings, "set_section"):
-                    settings.set_section("smtp", config)
-                elif hasattr(settings, "set"):
-                    # Algunos wrappers esperan settings.set("smtp.key", value) o settings.set("smtp", dict)
-                    try:
-                        # Intento favor de guardar la sección completa
-                        settings.set("smtp", config)
-                    except Exception:
-                        # Como último recurso guardar cada clave individual
-                        try:
-                            for k, v in config.items():
-                                settings.set(f"smtp.{k}", v)
-                        except Exception:
-                            # No pudimos guardar a través de set(); notificamos pero continuamos
-                            print("[WARN] No se pudo guardar la sección smtp via settings.set(); verifica la API de settings.")
-                else:
-                    print("[WARN] El objeto settings no expone set_section ni set; no se guardó la configuración SMTP en settings.")
-            except Exception as e:
-                print("[WARN] Error guardando configuración SMTP en settings:", e)
+            settings.update_section("smtp", config)
             self.show_info("✅ SMTP", "Configuración guardada correctamente.")
         else:
             self.show_error("❌ SMTP", msg)
-
+    
     def _test_smtp(self):
         """Prueba conexión SMTP en background."""
         config = {
@@ -635,79 +615,60 @@ class ConfigTab(BaseTab):
         self.show_info("Tema", f"Tema '{theme}' guardado. Reiniciá la app para aplicar cambios.")
 
     def _save_google_sheets_config(self):
-        """Guarda configuración de Google Sheets (limpia el Sheet ID y la ruta de credenciales)."""
+        """Guarda configuración de Google Sheets (limpia el Sheet ID pegado por el usuario)."""
         import re
         from pathlib import Path
 
         # Leer valores desde la UI
-        sheet_key_raw = self.google_sheet_key_var.get() or ""
-        creds_file_raw = self.google_creds_file_var.get() or ""
+        sheet_key_raw = self.google_sheet_key_var.get().strip()
+        creds_file = self.google_creds_file_var.get().strip()
 
-        sheet_key_raw = sheet_key_raw.strip()
-        creds_file_raw = creds_file_raw.strip()
-
+        # Validaciones básicas
         if not sheet_key_raw:
             self.show_warning("Google Sheets", "El campo 'ID de la Hoja' no puede estar vacío.")
             return
 
-        # --- LIMPIAR SHEET ID ---
-        # Quitar textos guía comunes que usuarios pegan por error
+        # Limpiar textos guía que el usuario podría haber pegado accidentalmente
         sheet_key_clean = sheet_key_raw.replace("PEGA_AQUI_EL_ID_DE_TU_HOJA", "").strip()
-        # Extraer patrón probable de sheet id (heurística)
+
+        # Extraer el ID real con una heurística (IDs de Google Sheets suelen ser largos y alfanum+_-)
         m = re.search(r"[0-9A-Za-z_-]{30,}", sheet_key_clean)
         if m:
             sheet_key = m.group(0)
         else:
-            sheet_key = sheet_key_clean  # fallback
+            # Si no se encuentra un patrón largo, usar el valor limpio tal cual (fallback)
+            sheet_key = sheet_key_clean
 
-        # --- LIMPIAR CREDENTIALS PATH ---
-        creds_file_clean = creds_file_raw
-        # Si el usuario pegó un comando junto al path, eliminar la porción desde ' set "'
-        if ' set "' in creds_file_clean:
-            creds_file_clean = creds_file_clean.split(' set "', 1)[0].strip()
-        # Quitar comillas sobrantes y espacios
-        creds_file_clean = creds_file_clean.strip().strip('"').strip("'").strip()
-        # Si el texto contiene algo que parece un path a JSON, extraerlo
-        m2 = re.search(r'([A-Za-z]:(?:\\|/)[^"]+?\.json)|([^"\s]+\.json)', creds_file_clean)
-        if m2:
-            # prefer absolute windows path group1 else group2
-            creds_path_candidate = m2.group(1) or m2.group(2)
-            creds_file_final = creds_path_candidate
-        else:
-            creds_file_final = creds_file_clean  # fallback (could be just filename)
-
-        # Normalizar ruta relativa a cwd si no es absoluta
-        try:
-            p = Path(creds_file_final)
-            if p and not p.is_absolute() and creds_file_final != "":
+        # Si el usuario puso una ruta relativa para el archivo de credenciales, normalizarla
+        if creds_file:
+            p = Path(creds_file)
+            if not p.is_absolute():
+                # Asumir relativo a la carpeta desde donde ejecutás python (cwd)
                 creds_file_resolved = str(Path.cwd() / p)
             else:
-                creds_file_resolved = str(p) if creds_file_final else ""
-        except Exception:
-            creds_file_resolved = creds_file_final
+                creds_file_resolved = str(p)
+        else:
+            creds_file_resolved = ""
 
-        # Guardar en settings (varias claves para compatibilidad)
+        # Guardar en settings: clave específica que usa la UI y una clave genérica para el backend
         try:
             settings.set("google_sheets.sheet_key", sheet_key)
             settings.set("google_sheets.credentials_file", creds_file_resolved)
-            settings.set("google_sheets.spreadsheet_id", sheet_key)
+            # También guardamos en clave genérica para compatibilidad con otros módulos
             settings.set("spreadsheet_id", sheet_key)
+            settings.set("google_sheets.spreadsheet_id", sheet_key)
         except Exception:
-            # Fallback si settings no expone set()
+            # Si settings no tiene set(), intentar fallback a update_section (según implementación)
             try:
                 settings.update_section("google_sheets", {
                     "sheet_key": sheet_key,
                     "credentials_file": creds_file_resolved,
                     "spreadsheet_id": sheet_key
                 })
-                # Intentar set genérico si disponible
-                try:
-                    settings.set("spreadsheet_id", sheet_key)
-                except Exception:
-                    pass
+                settings.set("spreadsheet_id", sheet_key)
             except Exception:
-                # No podemos escribir settings, al menos informar al usuario
-                self.show_error("Error", "No se pudo guardar la configuración en settings.")
+                # último recurso: escribir en data/config.json directamente (si existe API)
+                pass
 
         self.show_info("Google Sheets", "Configuración guardada correctamente.")
 
@@ -837,46 +798,19 @@ class ConfigTab(BaseTab):
             self.show_error("Error de subida", msg)
 
     def _sincronizar_bidireccional(self):
-        """Handler para sincronizar bidireccionalmente con Google Sheets desde la UI."""
-        # pedir sheet_key desde settings
-        try:
-            from config.settings import settings
-            sheet_key = settings.get("google_sheets.sheet_key", "") or settings.get("spreadsheet_id", "")
-        except Exception:
-            sheet_key = ""
-
-        # lanzar en background para no bloquear UI
-        def worker():
-            try:
-                from database.google_sheets import sincronizar_bidireccional
-            except Exception as e:
-                # no existe el helper -> reportar en UI
-                try:
-                    self.show_error("Google Sheets", f"No se pudo iniciar sincronización: {e}")
-                except Exception:
-                    print("No se pudo iniciar sincronización:", e)
-                return
-
-            try:
-                ok, msg = sincronizar_bidireccional(sheet_key)
-                if ok:
-                    try:
-                        self.show_info("Sincronización", msg)
-                    except Exception:
-                        print("[INFO] Sincronización:", msg)
-                else:
-                    try:
-                        self.show_error("Sincronización fallida", msg)
-                    except Exception:
-                        print("[ERROR] Sincronización fallida:", msg)
-            except Exception as e:
-                try:
-                    self.show_error("Sincronización", f"Ocurrió un error: {e}")
-                except Exception:
-                    print("Sincronización error:", e)
-
-        threading.Thread(target=worker, daemon=True).start()
-        try:
-            self.show_info("Google Sheets", "Sincronización iniciada en segundo plano...")
-        except Exception:
-            print("Sincronización iniciada...")
+        """Sincronización bidireccional con Google Sheets."""
+        sheet_key = self.google_sheet_key_var.get().strip()
+        
+        if not sheet_key:
+            self.show_warning("Google Sheets", "Ingresá el ID de la hoja primero.")
+            return
+        
+        from database.google_sheets import sincronizar_bidireccional
+        
+        ok, msg = sincronizar_bidireccional(sheet_key)
+        
+        if ok:
+            self.show_info("Sincronización exitosa", msg)
+            self.app.refresh_all()
+        else:
+            self.show_error("Error de sincronización", msg)

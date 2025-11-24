@@ -21,7 +21,12 @@ class InscripcionApp:
         
         # Crear pestañas
         self._create_tabs()
-    
+        # Ejecutar la sincronización inicial desde Google Sheets
+        try:
+            self._startup_sync_from_sheets(show_popup=True)
+        except Exception:
+            pass
+        
     def _setup_style(self):
         """Configura estilos de la aplicación."""
         # Aplicar tema con alto contraste
@@ -64,7 +69,75 @@ class InscripcionApp:
             anchor=tk.W
         )
         self.status_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        
+
+    def _startup_sync_from_sheets(self, show_popup: bool = True):
+        """
+        Al iniciar la app: descarga la planilla y sincroniza el CSV local.
+        Si hay cambios, actualiza la UI (refresh) y muestra un resumen (added/updated/removed).
+        """
+        try:
+            # comprobar si está habilitado en settings
+            enabled = settings.get("google_sheets.enabled", True)
+            if not enabled:
+                print("[STARTUP SYNC] google_sheets disabled in settings; skipping startup sync")
+                return
+
+            sheet_key = settings.get("google_sheets.sheet_key", "") or settings.get("spreadsheet_id", "")
+            if not sheet_key:
+                print("[STARTUP SYNC] No sheet_key configured; skipping startup sync")
+                return
+
+            print("[STARTUP SYNC] Iniciando sincronización remota -> local desde planilla...")
+            from services.google_sheets import sync_remote_to_local
+            ok, result = sync_remote_to_local(sheet_key)
+            if not ok:
+                print("[STARTUP SYNC] Falló la sincronización inicial:", result)
+                if show_popup:
+                    try:
+                        self.show_warning("Sincronización inicial", f"No se pudo sincronizar desde Google Sheets: {result}")
+                    except Exception:
+                        pass
+                return
+
+            stats = result or {}
+            added = stats.get("added", 0)
+            updated = stats.get("updated", 0)
+            removed = stats.get("removed", 0)
+            skipped = stats.get("skipped", 0)
+            total_after = stats.get("local_total_after", 0)
+
+            # refresh UI (tabs that show registros)
+            try:
+                # refresh main form tab and other tabs if needed
+                if hasattr(self, "form_tab") and self.form_tab:
+                    try:
+                        self.form_tab.refresh()
+                    except Exception:
+                        pass
+                try:
+                    self.refresh_all()
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
+            msg = f"Sincronización inicial completada.\nAñadidos: {added}\nActualizados: {updated}\nEliminados: {removed}\nIgnorados: {skipped}\nTotal local: {total_after}"
+            print("[STARTUP SYNC] " + msg.replace("\n", " | "))
+            if show_popup:
+                try:
+                    # usar show_info o un messagebox para alertar al usuario
+                    self.show_info("Sincronización inicial", msg)
+                except Exception:
+                    import tkinter.messagebox as mb
+                    try:
+                        mb.showinfo("Sincronización inicial", msg)
+                    except Exception:
+                        print("[STARTUP SYNC] No se pudo mostrar popup, se imprimió en consola.")
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print("[STARTUP SYNC] Error inesperado:", e)
+
     def _create_tabs(self):
         """Crea todas las pestañas."""
         from ui.form_tab import FormTab

@@ -12,17 +12,17 @@ def validar_dni(dni):
     """
     if not dni:
         return False
-    
+
     # Remover puntos y espacios
     dni_clean = dni.replace(".", "").replace(" ", "").strip()
-    
+
     # Debe ser numérico y tener 7-8 dígitos
     if not dni_clean.isdigit():
         return False
-    
+
     if len(dni_clean) < 7 or len(dni_clean) > 8:
         return False
-    
+
     return True
 
 
@@ -35,7 +35,7 @@ def validar_email(email):
     """
     if not email:
         return True  # Email es opcional
-    
+
     # Regex básico para email
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email.strip()) is not None
@@ -50,13 +50,13 @@ def validar_telefono(telefono):
     """
     if not telefono:
         return True  # Teléfono es opcional
-    
+
     # Remover caracteres comunes
     tel_clean = telefono.replace("-", "").replace(" ", "").replace("(", "").replace(")", "").strip()
-    
+
     # Debe tener al menos 7 dígitos
     digits = "".join(c for c in tel_clean if c.isdigit())
-    
+
     return len(digits) >= 7
 
 
@@ -82,16 +82,73 @@ def validar_cupo_disponible(materia, profesor=None, comision=None):
         profesor (str, optional): Nombre del profesor
         comision (str, optional): Nombre de la comisión
     Returns: tuple(bool, str) - (es_valido, mensaje)
+    Implementación robusta:
+     - Si app.check_cupos == False -> devuelve True
+     - Busca cupo en models.materias.get_info_completa(...) (instruments.json)
+     - Si no está, intenta leer services.cupos.get_cupos()
+     - Cuenta inscriptos con database.csv_handler.contar_inscripciones_materia
     """
-    from models.materias import tiene_cupo_disponible
     from config.settings import settings
-    
+
     # Si está deshabilitado el check de cupos, siempre es válido
     if not settings.get("app.check_cupos", True):
         return True, "Verificación de cupos deshabilitada"
-    
-    return tiene_cupo_disponible(materia, profesor, comision)
 
+    if not materia:
+        return True, "Materia no especificada (no se verifica cupo)"
+
+    # Intentar obtener cupo por combinación (materia+profesor+comision)
+    cupo_val = None
+    try:
+        from models.materias import get_info_completa
+        info = get_info_completa(materia, profesor, comision)
+        if info:
+            # buscar claves comunes
+            cupo_val = info.get("cupo") or info.get("vacantes") or info.get("capacity")
+    except Exception:
+        info = None
+
+    # Si no está en instruments.json, intentar cargar cupos desde services.cupos (cupos.yaml/json)
+    if cupo_val is None:
+        try:
+            from services.cupos import get_cupos
+            ok, data = get_cupos()
+            if ok and data:
+                # data puede ser dict con claves por materia
+                val = data.get(materia)
+                if val is not None:
+                    if isinstance(val, dict):
+                        cupo_val = val.get("cupo") or val.get("vacantes")
+                    else:
+                        cupo_val = val
+        except Exception:
+            pass
+
+    # Normalizar cupo a int si es posible
+    cupo_int = None
+    try:
+        if cupo_val is not None and str(cupo_val).strip() != "" and str(cupo_val).lower() not in ("null", "none"):
+            cupo_int = int(cupo_val)
+    except Exception:
+        cupo_int = None
+
+    # Contar inscriptos (ignorar lista de espera)
+    try:
+        from database.csv_handler import contar_inscripciones_materia
+        inscritos = contar_inscripciones_materia(materia, profesor if profesor else None, comision if comision else None)
+    except Exception:
+        inscritos = 0
+
+    if cupo_int is None:
+        return True, f"Cupo indefinido (inscriptos: {inscritos})"
+
+    restante = max(0, cupo_int - inscritos)
+    if restante > 0:
+        return True, f"Quedan {restante} vacantes (total: {cupo_int}, inscriptos: {inscritos})"
+    else:
+        # no hay cupo, devolvemos False pero con mensaje que permite UI ofrecer lista de espera
+        return False, f"No quedan vacantes (cupo: {cupo_int}, inscriptos: {inscritos}). ¿Desea inscribir en lista de espera?"
+    
 
 def validar_datos_inscripcion(datos):
     """
@@ -112,17 +169,17 @@ def validar_datos_inscripcion(datos):
         "profesor": "Profesor",
         "comision": "Comisión"
     }
-    
+
     # Verificar campos obligatorios
     for campo, nombre in campos_obligatorios.items():
         valor = datos.get(campo)
         if not valor or (isinstance(valor, str) and not valor.strip()):
             return False, f"El campo '{nombre}' es obligatorio."
-    
+
     # Validar DNI
     if not validar_dni(datos.get("dni", "")):
         return False, "El DNI debe tener 7-8 dígitos numéricos."
-    
+
     # Validar edad
     try:
         edad = int(datos.get("edad", 0))
@@ -132,29 +189,29 @@ def validar_datos_inscripcion(datos):
             return False, "La edad mínima es 5 años."
     except (ValueError, TypeError):
         return False, "La edad debe ser un número válido."
-    
+
     # Validar email si existe
     email = datos.get("email", "").strip()
     if email and not validar_email(email):
         return False, "El formato del email no es válido."
-    
+
     # Validar teléfono si existe
     telefono = datos.get("telefono", "").strip()
     if telefono and not validar_telefono(telefono):
         return False, "El formato del teléfono no es válido."
-    
+
     # Validar cupo
     ok_cupo, msg_cupo = validar_cupo_disponible(
         datos.get("materia"),
         datos.get("profesor"),
         datos.get("comision")
     )
-    
+
     if not ok_cupo:
         # Si no hay cupo, preguntar si quiere lista de espera
         # (esto se maneja en la UI, aquí solo informamos)
         return False, f"⚠️ {msg_cupo}\n\n¿Desea inscribir en lista de espera?"
-    
+
     return True, "Datos válidos"
 
 
@@ -166,22 +223,22 @@ def validar_campos_certificado(datos):
     Returns: tuple(bool, str) - (es_valido, mensaje_error)
     """
     from config.settings import settings
-    
+
     # Campos mínimos requeridos
     if not datos.get("nombre") or not datos.get("apellido"):
         return False, "Faltan nombre o apellido del alumno."
-    
+
     if not datos.get("dni"):
         return False, "Falta DNI del alumno."
-    
+
     if not datos.get("materia"):
         return False, "Falta materia de inscripción."
-    
+
     # Verificar seguro escolar si está configurado
     if settings.get("app.require_seguro_escolar", True):
         if datos.get("seguro_escolar", "No") != "Sí":
             return False, "El alumno debe tener seguro escolar para generar certificado."
-    
+
     return True, "Datos válidos para certificado"
 
 
@@ -194,11 +251,11 @@ def normalizar_nombre(nombre):
     """
     if not nombre:
         return ""
-    
+
     # Title case pero respetando casos especiales
     palabras = nombre.strip().split()
     palabras_normalizadas = []
-    
+
     for palabra in palabras:
         # Preservar siglas (ej: DNI, USA)
         if palabra.isupper() and len(palabra) <= 4:
@@ -209,7 +266,7 @@ def normalizar_nombre(nombre):
             palabras_normalizadas.append("'".join(p.capitalize() for p in partes))
         else:
             palabras_normalizadas.append(palabra.capitalize())
-    
+
     return " ".join(palabras_normalizadas)
 
 
@@ -221,23 +278,23 @@ def normalizar_datos_inscripcion(datos):
     Returns: dict
     """
     datos_normalizados = datos.copy()
-    
+
     # Normalizar nombres
     campos_nombre = ["nombre", "apellido", "nombre_padre", "nombre_madre"]
     for campo in campos_nombre:
         if campo in datos_normalizados:
             datos_normalizados[campo] = normalizar_nombre(datos_normalizados[campo])
-    
+
     # Limpiar espacios en campos de texto
     for campo in datos_normalizados:
         if isinstance(datos_normalizados[campo], str):
             datos_normalizados[campo] = datos_normalizados[campo].strip()
-    
+
     # Normalizar DNI (sin puntos)
     if "dni" in datos_normalizados:
         dni = datos_normalizados["dni"]
         datos_normalizados["dni"] = dni.replace(".", "").replace(" ", "").strip()
-    
+
     return datos_normalizados
 
 
@@ -250,22 +307,22 @@ def validar_dni_duplicado(dni, excluir_id=None):
     Returns: tuple(bool, str) - (es_duplicado, mensaje)
     """
     from database.csv_handler import buscar_por_dni
-    
+
     registros = buscar_por_dni(dni)
-    
+
     # Filtrar el registro que se está editando
     if excluir_id:
         registros = [r for r in registros if r.get("id") != excluir_id]
-    
+
     if registros:
         # Listar materias donde ya está inscripto
         materias = [r.get("materia", "N/A") for r in registros]
         materias_str = ", ".join(materias[:3])  # Mostrar max 3
         if len(materias) > 3:
             materias_str += f" (+{len(materias)-3} más)"
-        
+
         return True, f"DNI ya registrado en: {materias_str}"
-    
+
     return False, "DNI disponible"
 
 
@@ -279,15 +336,15 @@ def sanitizar_texto(texto, max_length=None):
     """
     if not texto:
         return ""
-    
+
     # Remover caracteres problemáticos
     texto_limpio = texto.replace("\n", " ").replace("\r", " ").replace("\t", " ")
-    
+
     # Reducir espacios múltiples
     texto_limpio = " ".join(texto_limpio.split())
-    
+
     # Truncar si es necesario
     if max_length and len(texto_limpio) > max_length:
         texto_limpio = texto_limpio[:max_length-3] + "..."
-    
+
     return texto_limpio

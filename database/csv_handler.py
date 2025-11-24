@@ -1,298 +1,241 @@
-"""Handler de CSV con funciones completas."""
+"""
+Handler de CSV con funciones completas y seguras.
+Reemplaza/normaliza las operaciones de carga/guardado de inscripciones.
+"""
 import csv
+import tempfile
+import shutil
+import os
+import traceback
 from pathlib import Path
 from datetime import datetime
-from config.settings import CSV_FILE, CSV_FIELDS  # ← Corregido
-from typing import List, Dict, Optional
-import uuid
+from typing import List, Dict, Any, Tuple, Optional
+
+from config.settings import CSV_FILE, CSV_FIELDS
+
+# Asegurar que el directorio existe
+CSV_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 
-def guardar_registro(registro: Dict) -> tuple:
-    """
-    Guarda un registro en el CSV.
-    Args:
-        registro (dict): Datos del registro
-    Returns:
-        tuple(bool, str): (exito, mensaje)
-    """
-    try:
-        # Generar ID si no existe
-        if not registro.get("id"):
-            registro["id"] = generar_id()
-        
-        # Agregar timestamp si no existe
-        if not registro.get("fecha_inscripcion"):
-            registro["fecha_inscripcion"] = datetime.now().isoformat()
-        
-        # Cargar registros existentes
-        registros = cargar_registros()
-        
-        # Verificar si ya existe (por ID)
-        existe = False
-        for i, reg in enumerate(registros):
-            if reg.get("id") == registro["id"]:
-                registros[i] = registro
-                existe = True
-                break
-        
-        if not existe:
-            registros.append(registro)
-        
-        # Guardar todos los registros
-        return guardar_todos_registros(registros)
-    
-    except Exception as e:
-        return False, f"Error al guardar: {e}"
-    
-
-def cargar_registros() -> List[Dict]:
-    """Carga todos los registros desde CSV."""
-    if not CSV_FILE.exists():  # ← Corregido
+def cargar_registros() -> List[Dict[str, Any]]:
+    """Carga todos los registros desde CSV_FILE. Devuelve lista vacía si no existe."""
+    if not CSV_FILE.exists():
         return []
-    
-    registros = []
+
+    registros: List[Dict[str, Any]] = []
     try:
-        with open(CSV_FILE, 'r', encoding='utf-8-sig', newline='') as f:  # ← Corregido
+        with open(CSV_FILE, "r", encoding="utf-8-sig", newline="") as f:
             reader = csv.DictReader(f)
             for row in reader:
+                # Normalizar keys (en caso de headers inesperados)
                 registros.append(dict(row))
     except Exception as e:
-        print(f"[ERROR] No se pudo cargar CSV: {e}")
-    
+        print(f"[ERROR] cargar_registros: no se pudo leer {CSV_FILE}: {e}")
     return registros
 
 
-def guardar_todos_registros(registros: List[Dict]) -> tuple:
+def guardar_todos_registros(registros: List[Dict[str, Any]], csv_path: Optional[str] = None,
+                            fieldnames: Optional[List[str]] = None) -> Tuple[bool, str]:
     """
-    Guarda todos los registros en el CSV.
-    Args:
-        registros (list): Lista de registros
-    Returns:
-        tuple(bool, str): (exito, mensaje)
+    Guarda la lista completa de registros en CSV de forma atómica.
+    Devuelve (ok, mensaje).
     """
     try:
-        # Asegurar que existe el directorio
-        CSV_FILE.parent.mkdir(parents=True, exist_ok=True)  # ← Corregido
-        
-        with open(CSV_FILE, 'w', encoding='utf-8-sig', newline='') as f:  # ← Corregido
-            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
-            writer.writeheader()
-            
-            for reg in registros:
-                # Asegurar que tiene todos los campos
-                row = {field: reg.get(field, "") for field in CSV_FIELDS}
-                writer.writerow(row)
-        
-        return True, f"Guardados {len(registros)} registros"
-    
+        if csv_path is None:
+            csv_path = str(CSV_FILE.resolve())
+
+        if fieldnames is None:
+            # Preferir CSV_FIELDS del settings; si faltan usar keys del primer registro
+            fieldnames = CSV_FIELDS.copy() if CSV_FIELDS else []
+            if not fieldnames and registros:
+                fieldnames = list(registros[0].keys())
+
+        # Asegurar directorio
+        dirn = os.path.dirname(csv_path) or "."
+        os.makedirs(dirn, exist_ok=True)
+
+        # Escribir a archivo temporal y moverlo (atomic-ish)
+        fd, tmp_path = tempfile.mkstemp(prefix="tmp_inscripciones_", dir=dirn, text=True)
+        os.close(fd)
+        try:
+            with open(tmp_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+                writer.writeheader()
+                for r in registros:
+                    # asegurarnos de que todos los valores sean strings (csv writer espera)
+                    row = {k: ("" if r.get(k) is None else r.get(k)) for k in fieldnames}
+                    writer.writerow(row)
+            shutil.move(tmp_path, csv_path)
+        finally:
+            # cleanup si queda tmp
+            try:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except Exception:
+                pass
+        return True, "OK"
     except Exception as e:
-        return False, f"Error al guardar: {e}"
+        tb = traceback.format_exc()
+        print("[ERROR] guardar_todos_registros failed:", e)
+        print(tb)
+        return False, str(e)
 
 
-def generar_id(registro=None):
+def guardar_registro(registro: Dict[str, Any]) -> Tuple[bool, str]:
     """
-    Genera ID único basado en legajo + fecha + hora.
-    Formato: {LEGAJO}_{YYYYMMDD}_{HHMMSS}
-    
-    Args:
-        registro (dict, optional): Datos del registro (debe tener 'legajo' o 'dni')
-    
-    Returns:
-        str: ID único
+    Guarda o actualiza un registro individual.
+    - Si 'id' no existe se genera con generar_id(registro)
+    - Devuelve (ok,msg)
     """
-    # Obtener legajo (o DNI como fallback)
-    legajo = ""
+    try:
+        registros = cargar_registros()
+
+        # Generar id si no existe
+        if not registro.get("id"):
+            registro["id"] = generar_id(registro)
+
+        # Añadir fecha_inscripcion si no existe
+        if not registro.get("fecha_inscripcion"):
+            registro["fecha_inscripcion"] = datetime.now().isoformat()
+
+        # Buscar por id y reemplazar si existe
+        encontrado = False
+        for i, r in enumerate(registros):
+            if str(r.get("id", "")) == str(registro.get("id", "")):
+                registros[i] = registro
+                encontrado = True
+                break
+        if not encontrado:
+            registros.append(registro)
+
+        ok, msg = guardar_todos_registros(registros)
+        return ok, msg
+    except Exception as e:
+        return False, f"Error al guardar registro: {e}"
+
+
+def generar_id(registro: Optional[Dict[str, Any]] = None) -> str:
+    """
+    Genera un ID legible y (relativamente) único:
+    formato: {LEGAJO|DNI|TEMP}_{YYYYMMDD}_{HHMMSS}_{rand}
+    """
+    base = "TEMP"
     if registro:
-        legajo = registro.get("legajo", "") or registro.get("dni", "")
-    
-    if not legajo:
-        # Si no hay legajo ni DNI, generar temporal con timestamp
-        legajo = "TEMP"
-    
-    # Limpiar legajo (solo alfanuméricos)
-    legajo = "".join(c for c in str(legajo) if c.isalnum())
-    
-    # Generar timestamp
+        base = registro.get("legajo") or registro.get("dni") or base
+    base = "".join(c for c in str(base) if c.isalnum()) or "TEMP"
     now = datetime.now()
-    fecha = now.strftime("%Y%m%d")  # YYYYMMDD
-    hora = now.strftime("%H%M%S")   # HHMMSS (con segundos)
-    
-    # Formato: LEGAJO_FECHA_HORA
-    id_generado = f"{legajo}_{fecha}_{hora}"
-    
-    return id_generado
+    ts = now.strftime("%Y%m%d_%H%M%S")
+    # añadir componente corto aleatorio para reducir colisiones
+    import random, string
+    rand = "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
+    return f"{base}_{ts}_{rand}"
 
 
-def actualizar_registro(datos):
+def actualizar_registro(datos: Dict[str, Any]) -> Tuple[bool, str]:
     """
-    Actualiza un registro existente.
-    Args:
-        datos (dict): Datos del registro (debe incluir 'id')
+    Actualiza un registro existente por 'id'. Lanza ValueError si no existe id.
+    Devuelve (ok,msg).
     """
+    try:
+        registros = cargar_registros()
+        reg_id = datos.get("id")
+        if not reg_id:
+            return False, "El registro debe incluir 'id' para actualizar"
+
+        encontrado = False
+        for i, r in enumerate(registros):
+            if str(r.get("id", "")) == str(reg_id):
+                # Mantener columnas según CSV_FIELDS (si existen)
+                actualizado = {k: datos.get(k, r.get(k, "")) for k in (CSV_FIELDS or list(datos.keys()))}
+                registros[i] = actualizado
+                encontrado = True
+                break
+
+        if not encontrado:
+            return False, f"Registro con id '{reg_id}' no encontrado"
+
+        ok, msg = guardar_todos_registros(registros)
+        return ok, msg
+    except Exception as e:
+        return False, str(e)
+
+
+def eliminar_registro(reg_id: str) -> Tuple[bool, str]:
+    """
+    Elimina un registro por ID. Devuelve (ok,msg).
+    """
+    try:
+        registros = cargar_registros()
+        registros_filtrados = [r for r in registros if str(r.get("id", "")) != str(reg_id)]
+        if len(registros_filtrados) == len(registros):
+            return False, f"Registro con id '{reg_id}' no encontrado"
+        ok, msg = guardar_todos_registros(registros_filtrados)
+        return ok, msg
+    except Exception as e:
+        return False, str(e)
+
+
+def buscar_por_dni(dni: str) -> List[Dict[str, Any]]:
     registros = cargar_registros()
-    reg_id = datos.get("id")
-    
-    if not reg_id:
-        raise ValueError("El registro debe tener 'id' para actualizar")
-    
-    # Buscar y actualizar
-    encontrado = False
-    for i, reg in enumerate(registros):
-        if reg.get("id") == reg_id:
-            # Mantener todos los campos
-            registro_actualizado = {campo: datos.get(campo, reg.get(campo, "")) for campo in CSV_FIELDS}
-            registros[i] = registro_actualizado
-            encontrado = True
-            break
-    
-    if not encontrado:
-        raise ValueError(f"Registro con id '{reg_id}' no encontrado")
-    
-    guardar_todos_registros(registros)
+    return [r for r in registros if str(r.get("dni", "")) == str(dni)]
 
 
-def eliminar_registro(reg_id):
-    """
-    Elimina un registro por ID.
-    Args:
-        reg_id (str): ID del registro a eliminar
-    """
+def buscar_por_id(reg_id: str) -> Optional[Dict[str, Any]]:
     registros = cargar_registros()
-    
-    # Filtrar (mantener todos menos el eliminado)
-    registros_filtrados = [reg for reg in registros if reg.get("id") != reg_id]
-    
-    if len(registros_filtrados) == len(registros):
-        raise ValueError(f"Registro con id '{reg_id}' no encontrado")
-    
-    guardar_todos_registros(registros_filtrados)
-
-
-def buscar_por_dni(dni):
-    """
-    Busca registros por DNI.
-    Args:
-        dni (str): DNI a buscar
-    Returns: list[dict]
-    """
-    registros = cargar_registros()
-    return [reg for reg in registros if reg.get("dni") == dni]
-
-
-def buscar_por_id(reg_id):
-    """
-    Busca un registro por ID.
-    Args:
-        reg_id (str): ID del registro
-    Returns: dict or None
-    """
-    registros = cargar_registros()
-    for reg in registros:
-        if reg.get("id") == reg_id:
-            return reg
+    for r in registros:
+        if str(r.get("id", "")) == str(reg_id):
+            return r
     return None
 
 
-def contar_inscripciones_materia(materia, profesor=None, comision=None):
-    """
-    Cuenta inscripciones en una materia/profesor/comisión.
-    Args:
-        materia (str): Nombre de la materia
-        profesor (str, optional): Nombre del profesor
-        comision (str, optional): Nombre de la comisión
-    Returns: int
-    """
+def contar_inscripciones_materia(materia: str, profesor: Optional[str] = None,
+                                 comision: Optional[str] = None) -> int:
     registros = cargar_registros()
-    
     count = 0
-    for reg in registros:
-        if reg.get("materia") != materia:
+    for r in registros:
+        if r.get("materia") != materia:
             continue
-        
-        if profesor and reg.get("profesor") != profesor:
+        if profesor and r.get("profesor") != profesor:
             continue
-        
-        if comision and reg.get("comision") != comision:
+        if comision and r.get("comision") != comision:
             continue
-        
-        # No contar los que están en lista de espera
-        if reg.get("en_lista_espera", "No") == "Sí":
+        if r.get("en_lista_espera", "No") == "Sí":
             continue
-        
         count += 1
-    
     return count
 
 
-def obtener_historial_alumno(dni):
-    """
-    Obtiene historial completo de un alumno por DNI.
-    Args:
-        dni (str): DNI del alumno
-    Returns: list[dict]
-    """
+def obtener_historial_alumno(dni: str) -> List[Dict[str, Any]]:
     registros = cargar_registros()
-    historial = [reg for reg in registros if reg.get("dni") == dni]
-    
-    # Ordenar por fecha de inscripción (más reciente primero)
-    historial.sort(
-        key=lambda x: x.get("fecha_inscripcion", ""),
-        reverse=True
-    )
-    
+    historial = [r for r in registros if str(r.get("dni", "")) == str(dni)]
+    historial.sort(key=lambda x: x.get("fecha_inscripcion", ""), reverse=True)
     return historial
 
 
-def exportar_listado(filtros=None):
-    """
-    Exporta listado filtrado.
-    Args:
-        filtros (dict, optional): Filtros a aplicar (materia, profesor, turno, año)
-    Returns: list[dict]
-    """
+def exportar_listado(filtros: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     registros = cargar_registros()
-    
     if not filtros:
         return registros
-    
     resultado = []
-    for reg in registros:
+    for r in registros:
         cumple = True
-        
-        if "materia" in filtros and reg.get("materia") != filtros["materia"]:
+        if "materia" in filtros and r.get("materia") != filtros["materia"]:
             cumple = False
-        
-        if "profesor" in filtros and reg.get("profesor") != filtros["profesor"]:
+        if "profesor" in filtros and r.get("profesor") != filtros["profesor"]:
             cumple = False
-        
-        if "turno" in filtros and reg.get("turno") != filtros["turno"]:
+        if "turno" in filtros and r.get("turno") != filtros["turno"]:
             cumple = False
-        
-        if "anio" in filtros and str(reg.get("anio")) != str(filtros["anio"]):
+        if "anio" in filtros and str(r.get("anio")) != str(filtros["anio"]):
             cumple = False
-        
         if cumple:
-            resultado.append(reg)
-    
+            resultado.append(r)
     return resultado
 
 
-def migrar_id_si_es_uuid(registro):
-    """
-    Migra IDs antiguos UUID a nuevo formato.
-    Args:
-        registro (dict): Registro a verificar y migrar si es necesario
-    Returns:
-        dict: Registro con ID actualizado si fue necesario
-    """
+def migrar_id_si_es_uuid(registro: Dict[str, Any]) -> Dict[str, Any]:
     id_actual = registro.get("id", "")
-    
-    # Si es UUID (formato: 12663a87-6791-deb2-7789-...)
-    # Los UUIDs tienen múltiples guiones y son largos (>20 caracteres)
     if len(id_actual) > 20 and id_actual.count("-") >= 4:
-        # Regenerar ID
         nuevo_id = generar_id(registro)
         registro["id"] = nuevo_id
         print(f"[INFO] ID migrado: {id_actual[:8]}... -> {nuevo_id}")
-    
     return registro
