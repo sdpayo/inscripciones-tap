@@ -1,0 +1,21 @@
+# Core Google APIs / Auth
+google-api-python-client>=2.70.0
+google-auth>=2.20.0
+google-auth-httplib2>=0.1.0
+google-auth-oauthlib>=1.0.0
+
+# PDF generation
+reportlab>=4.0
+
+# Image handling (icon conversion, etc.)
+Pillow>=9.0.0
+
+# Data / Excel export (optional: required only if you use Excel export with pandas)
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# HTTP helpers / general utilities
+requests>=2.30.0
+
+# Build tool (only needed on the machine that builds the exe)
+pyinstaller>=5.15.0

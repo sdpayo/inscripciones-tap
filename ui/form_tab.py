@@ -35,6 +35,13 @@ try:
 except ImportError:
     _HAS_PANDAS = False
 
+# ScrollableFrame
+try:
+    from ui.scrollable import ScrollableFrame
+    _HAS_SCROLLABLE = True
+except Exception:
+    _HAS_SCROLLABLE = False
+
 
 class FormTab(BaseTab):
     """Pestaña de formulario de inscripción."""
@@ -44,21 +51,29 @@ class FormTab(BaseTab):
         main_container = ttk.PanedWindow(self.frame, orient=tk.HORIZONTAL)
         main_container.pack(fill=tk.BOTH, expand=True)
 
-        # Left: form
-        left_panel = ttk.Frame(main_container)
+        # Left: form (scrollable)
+        if _HAS_SCROLLABLE:
+            left_panel = ScrollableFrame(main_container, vertical=True)
+        else:
+            left_panel = ttk.Frame(main_container)
         main_container.add(left_panel, weight=1)
 
-        form_main = ttk.Frame(left_panel)
-        form_main.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # contenido interior del panel (wrapper para paddings y para que las llamadas
+        # a .pack() de las secciones sigan funcionando)
+        if _HAS_SCROLLABLE:
+            form_main_wrapper = ttk.Frame(left_panel.inner)
+        else:
+            form_main_wrapper = ttk.Frame(left_panel)
+        form_main_wrapper.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         # Build compact vertical sections (estudiante, responsable, inscripción)
-        self._build_datos_estudiante_compact(form_main)
-        self._build_datos_responsable_compact(form_main)
-        self._build_datos_inscripcion_compact(form_main)
-        self._build_datos_materia_full_width(form_main)
+        self._build_datos_estudiante_compact(form_main_wrapper)
+        self._build_datos_responsable_compact(form_main_wrapper)
+        self._build_datos_inscripcion_compact(form_main_wrapper)
+        self._build_datos_materia_full_width(form_main_wrapper)
 
-        # Buttons under left panel
-        self._build_buttons(left_panel)
+        # Buttons under left panel (usar el wrapper para que estén dentro del scroll)
+        self._build_buttons(form_main_wrapper)
 
         # Right: table
         right_panel = ttk.Frame(main_container)
@@ -929,7 +944,8 @@ class FormTab(BaseTab):
             return
 
         try:
-            profesores = get_profesores_materia(materia) or []
+            anio = (self.anio_var.get() or "").strip()
+            profesores = get_profesores_materia(materia, int(anio) if anio else None) or []
         except Exception:
             profesores = []
 
@@ -979,16 +995,20 @@ class FormTab(BaseTab):
             return
 
         try:
-            comisiones = get_comisiones_profesor(materia, profesor) or []
+            anio = (self.anio_var.get() or "").strip()
+            comisiones = get_comisiones_profesor(materia, profesor, int(anio) if anio else None) or []
         except Exception:
             comisiones = []
 
         try:
+            # Si la lista contiene solo cadena vacía, dejamos el combo con un valor vacío
+            # para permitir seleccionar profesor en materias sin comisiones.
             self.comision_combo['values'] = comisiones
         except Exception:
             pass
 
         try:
+            # Resetear selección de comisión y horario al cambiar profesor
             self.comision_var.set("")
             if hasattr(self, "horario_var"):
                 self.horario_var.set("")

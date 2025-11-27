@@ -322,7 +322,7 @@ def generar_certificado_pdf(registro, output_path=None):
         c.drawCentredString(
             width / 2, 
             30, 
-            "Este certificado es válido con firma y sello de la institución"
+            "Sirva la presente constancia de inscripción como único recibo de pago"
         )
         
         # Guardar

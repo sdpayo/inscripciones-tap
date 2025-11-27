@@ -11,8 +11,9 @@ class InscripcionApp:
         """Inicializa la aplicación."""
         self.root = root
         self.root.title("Sistema de Inscripciones - ESM N°6003")
-        self.root.geometry("1400x800")
-        
+        #self.root.geometry("1400x800")
+        self.root.minsize(900, 600)
+
         # Configurar estilo
         self._setup_style()
         

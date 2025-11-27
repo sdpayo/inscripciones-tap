@@ -237,6 +237,24 @@ class ConfigTab(BaseTab):
             if hasattr(self, 'auto_refresh_var'):
                 settings.set("app.auto_refresh", self.auto_refresh_var.get())
             
+                        # --- Forzar guardado y mostrar error si ocurre ---
+            try:
+                from config.settings import settings as _app_settings
+                # Forzar persistencia en disco
+                _app_settings.save()
+                # Notificar al usuario si la UI tiene show_info
+                try:
+                    self.show_info("Configuración", "Configuración guardada correctamente")
+                except Exception:
+                    print("[INFO] Configuración guardada correctamente")
+            except Exception as _e:
+                import traceback
+                traceback.print_exc()
+                try:
+                    self.show_error("Error al guardar configuración", str(_e))
+                except Exception:
+                    print("[ERROR] No se pudo guardar la configuración:", _e)
+
             self.show_info("Guardado", "Configuración de aplicación guardada")
             
         except Exception as e:
