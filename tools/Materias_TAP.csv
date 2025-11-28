@@ -1,4 +1,8 @@
 Año,Tipo,Docente,Asignatura,Div.,CUPOS,Turno
+1,Grupal,Marite Cervera,Fonética Italiana,A,,
+1,Grupal,Juan Pablo Rosado,Gramática del lenguaje musical 1,E,,Mañana
+1,Grupal,Ana Issa,Taller de práctica coral 1,A,,Mañana
+1,Grupal,Carla Mana,Técnica Corporal 1,B,,Mañana
 1,Individual,Anabella Russo,Técnica Instrumental y Lectura a Primera Vista 1: Piano,18,4,
 1,Individual,Anabella Russo,Técnica Instrumental y Lectura a Primera Vista 1: Piano,1,4,
 1,Individual,Nadia Montes,Técnica Instrumental y Lectura a Primera Vista 1: Piano,2,4,
@@ -141,45 +145,6 @@ Emiliano Herrera",Taller de Repertorio y técnica Instrumental 1: Percusión,A,4
 Juan Aguirre Sabao",Técnica Instrumental y Lectura a Primera Vista 2: Contrabajo,A,4,
 3,Individual,Juan Aguirre Sabao,Taller de Repertorio y técnica Instrumental 1: : Contrabajo,A,4,
 4,Individual,Juan Aguirre Sabao,Taller de Repertorio y técnica Instrumental 2: : Contrabajo,A,4,
-1,Grupal,Juan Pablo Rosado,Gramática del lenguaje musical 1,E,,Mañana
-1,Grupal,Ana Issa,Taller de práctica coral 1,A,,Mañana
-1,Grupal,Carla Mana,Técnica Corporal 1,B,,Mañana
-1,Grupal,Sergio Tacuri,Gramática del lenguaje musical 1,B,,Tarde
-1,Grupal,Mercedes Nieva,Técnica Corporal 1,C,,Tarde
-1,Grupal,Mónica Ferri,Gramática del lenguaje musical 1,D,,Noche
-1,Grupal,Mónica Ferri,Taller de práctica coral 1,F,,Noche
-1,Grupal,Mónica Yapura,Técnica Corporal 1,,,Noche
-1,Grupal,David Durgale,Gramática del lenguaje musical 1,A,,Vespertino
-1,Grupal,Mónica Ferri,Taller de práctica coral 1,E,,Vespertino
-1,Grupal,Mercedes Nieva,Técnica Corporal 1,A,,Vespertino
-2,Grupal,Pablo Araya,Gramática del lenguaje musical 2,A,,Mañana
-2,Grupal,Luis Benavidez,Taller de práctica coral 2,B,,Mañana
-2,Grupal,Mercedes Nieva,Técnica Corporal 2,A,,Mañana
-2,Grupal,Ana Morales,Taller de Informática,A,,Mañana
-2,Grupal,Mónica Ferri,Gramática del lenguaje musical 2,C,,Tarde
-2,Grupal,Mónica Ferri,Taller de práctica coral 2,A,,Tarde
-2,Grupal,Mercedes Nieva,Técnica Corporal 2,A,,Tarde
-2,Grupal,Laura Pedro,Taller de Informática,B,,Tarde
-2,Grupal,Mónica Ferri,Gramática del lenguaje musical 2,B,,Noche
-2,Grupal,David Durgales,Taller de práctica coral 2,C,,Noche
-2,Grupal,Mercedes Nieva,Técnica Corporal 2,B,,Noche
-2,Grupal,Ana Morales,Taller de Informática,C,,Noche
-3,Grupal,Pedro Viltes,Gramática del lenguaje musical 3,A,,Mañana
-3,Grupal,Germán Mercado,Armonía aplicada y técnicas de análisis 1,A,,Mañana
-3,Grupal,Martín Velasco,Estética general,A,,Mañana
-3,Grupal,Silvina Añez,"Movimientos, escuelas y tendencias 1",A,,Mañana
-3,Grupal,Luciano Miranda,Taller de práctica y ensamble 1,A,,Mañana
-3,Grupal,Mónica Ferri,Gramática del lenguaje musical 3,B,,Vespertino
-3,Grupal,Germán Mercado,Armonía aplicada y técnicas de análisis 1,B,,Vespertino
-3,Grupal,Martín Velasco,Estética general,B,,Vespertino
-3,Grupal,Silvina Añez,"Movimientos, escuelas y tendencias 1",B,,Vespertino
-3,Grupal,Rita Corces,Taller de práctica y ensamble 1,B,,Vespertino
-4,Grupal,Aarón Torres,Gramática del lenguaje musical 4,A,,
-4,Grupal,Cristian Tarifa,Armonía aplicada y técnicas de análisis 2,A,,
-4,Grupal,Silvina Añez,"Movimientos, escuelas y tendencias 2",A,,
-4,Grupal,Florencia Gálvez,Taller de práctica y ensamble 2,A,,
-4,Grupal,Guillermo Rubelt,Proyecto Final,A,,
-4,Grupal,Walter Guzmán,Técnica de improvisación,A,,
 2,Individual,Luis Benavidez,Taller de inst. complementario I,D,4,
 2,Individual,Luis Benavidez,Taller de inst. complementario I,2,4,
 2,Individual,Lujan Issa,Taller de inst. complementario I,8,4,
@@ -210,16 +175,52 @@ Juan Aguirre Sabao",Técnica Instrumental y Lectura a Primera Vista 2: Contrabaj
 3,Individual,Lujan Issa,Taller de inst. complementario II,6,4,
 4,Individual,Luis Benavidez,Taller de inst. complementario III,A,4,
 1,Individual,A Designar,Técnica Instrumental y Lectura a Primera Vista 1: Viola,A,4,
-4,Grupal,Aramayo Marcelo,Fonética Inglesa,A,2,
 2,Individual,A Designar,Taller de Repertorio y técnica Instrumental 1: Trompeta,A,4,
 4,Individual,Alberto Fernandez,Taller de Repertorio y técnica Instrumental 2: Clarinete,A,4,
 4,Individual,Arturo Prieto,Taller de inst. complementario III,2,4,
 2,Individual,A Designar,Técnica Instrumental y Lectura a Primera Vista 2: Piano,1,4,
-1,Grupal,Marite Cervera,Fonética Italiana,A,2,
-1,Grupal,Fanny Espeche,Fonética Alemana,A,2,
 1,Individual,Florencia Gálvez,Técnica Instrumental y Lectura a Primera Vista 1: Violín,2,4,
 3,Individual,A Designar,Taller de Repertorio y técnica Instrumental 1: : Trombon,A,4,
 4,Individual,A Designar,Taller de Repertorio y técnica Instrumental 2: : Trombon,A,4,
 2,Individual,A Designar,Técnica Instrumental y Lectura a Primera Vista 2: Corno,1,4,
 3,Individual,A Designar,Taller de Repertorio y técnica Instrumental 1: : Corno,A,4,
 4,Individual,A Designar,Taller de Repertorio y técnica Instrumental 2: : Corno,A,4,
+1,Grupal,Sergio Tacuri,Gramática del lenguaje musical 1,B,,Tarde
+1,Grupal,Mercedes Nieva,Técnica Corporal 1,C,,Tarde
+1,Grupal,Mónica Ferri,Gramática del lenguaje musical 1,D,,Noche
+1,Grupal,Mónica Ferri,Taller de práctica coral 1,F,,Noche
+1,Grupal,Mónica Yapura,Técnica Corporal 1,D,,Noche
+1,Grupal,David Durgale,Gramática del lenguaje musical 1,A,,Vespertino
+1,Grupal,Mónica Ferri,Taller de práctica coral 1,E,,Vespertino
+1,Grupal,Mercedes Nieva,Técnica Corporal 1,A,,Vespertino
+2,Grupal,Carolina Beltrán,Fonética Francesa,A,,
+2,Grupal,Pablo Araya,Gramática del lenguaje musical 2,A,,Mañana
+2,Grupal,Luis Benavidez,Taller de práctica coral 2,B,,Mañana
+2,Grupal,Mercedes Nieva,Técnica Corporal 2,A,,Mañana
+2,Grupal,Ana Morales,Taller de Informática,A,,Mañana
+2,Grupal,Mónica Ferri,Gramática del lenguaje musical 2,C,,Tarde
+2,Grupal,Mónica Ferri,Taller de práctica coral 2,A,,Tarde
+2,Grupal,Mercedes Nieva,Técnica Corporal 2,A,,Tarde
+2,Grupal,Laura Pedro,Taller de Informática,B,,Tarde
+2,Grupal,Mónica Ferri,Gramática del lenguaje musical 2,B,,Noche
+2,Grupal,David Durgales,Taller de práctica coral 2,C,,Noche
+2,Grupal,Mercedes Nieva,Técnica Corporal 2,B,,Noche
+2,Grupal,Ana Morales,Taller de Informática,C,,Noche
+3,Grupal,Fanny Espeche,Fonética Alemana,A,,
+3,Grupal,Pedro Viltes,Gramática del lenguaje musical 3,A,,Mañana
+3,Grupal,Germán Mercado,Armonía aplicada y técnicas de análisis 1,A,,Mañana
+3,Grupal,Martín Velasco,Estética general,A,,Mañana
+3,Grupal,Silvina Añez,"Movimientos, escuelas y tendencias 1",A,,Mañana
+3,Grupal,Luciano Miranda,Taller de práctica y ensamble 1,A,,Mañana
+3,Grupal,Mónica Ferri,Gramática del lenguaje musical 3,B,,Vespertino
+3,Grupal,Germán Mercado,Armonía aplicada y técnicas de análisis 1,B,,Vespertino
+3,Grupal,Martín Velasco,Estética general,B,,Vespertino
+3,Grupal,Silvina Añez,"Movimientos, escuelas y tendencias 1",B,,Vespertino
+3,Grupal,Rita Corces,Taller de práctica y ensamble 1,B,,Vespertino
+4,Grupal,Aramayo Marcelo,Fonética Inglesa,A,,
+4,Grupal,Aarón Torres,Gramática del lenguaje musical 4,A,,
+4,Grupal,Cristian Tarifa,Armonía aplicada y técnicas de análisis 2,A,,
+4,Grupal,Silvina Añez,"Movimientos, escuelas y tendencias 2",A,,
+4,Grupal,Florencia Gálvez,Taller de práctica y ensamble 2,A,,
+4,Grupal,Guillermo Rubelt,Proyecto Final,A,,
+4,Grupal,Walter Guzmán,Técnica de improvisación,A,,

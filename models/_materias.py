@@ -1,34 +1,21 @@
-"""Modelo de materias y profesores (corrección: incluye get_horario)."""
-
+"""Modelo de materias y profesores."""
 import json
 from pathlib import Path
 from config.settings import INSTRUMENTS_FILE
 
-# Estructura en memoria (lista de dicts) usada por la UI
+# Cargar materias desde JSON
 MATERIAS = []
-
-def _ensure_list(x):
-    if x is None:
-        return []
-    if isinstance(x, list):
-        return x
-    return [x]
 
 def _normalize_from_dict(data_dict):
     """
-    Convierte el formato dict (instruments.json) a una lista de registros
-    con claves: materia, profesor, comision, año, cupo, turno, tipo.
-
-    Respeta asociaciones:
-     - Si commissions[clave] es dict y contiene 'professor'|'professors', esa comisión
-       sólo se asocia a esos profesor(es).
-     - Si professors[nombre] incluye 'commissions' la lista de comisiones de ese profesor
-       será respetada.
+    Convierte el formato de dict ({"materia": {meta}}) a una lista de registros
+    con las claves que maneja la app: materia, profesor, comision, año, cupo, turno, tipo.
+    Crea una entrada por cada combinación relevante (años/profesor/comisión).
     """
     items = []
-
     for materia_name, meta in data_dict.items():
         if not isinstance(meta, dict):
+            # formato inesperado: crear un registro mínimo
             items.append({
                 "materia": materia_name,
                 "profesor": "",
@@ -40,10 +27,11 @@ def _normalize_from_dict(data_dict):
             })
             continue
 
-        # years
+        # Extraer años; permitir int, str o lista
         years = meta.get('years') or meta.get('años') or meta.get('anio') or meta.get('año') or []
         if isinstance(years, (int, str)):
             years = [years]
+        # convertir elementos a int cuando sea posible, sino dejar como str
         norm_years = []
         for y in years:
             try:
@@ -51,9 +39,9 @@ def _normalize_from_dict(data_dict):
             except Exception:
                 norm_years.append(y)
         if not norm_years:
-            norm_years = [None]
+            norm_years = [None]  # al menos una iteración
 
-        # professors
+        # profesores
         professors = meta.get('professors') or meta.get('profesores') or {}
         if isinstance(professors, dict):
             prof_list = list(professors.keys()) or [""]
@@ -62,72 +50,26 @@ def _normalize_from_dict(data_dict):
         else:
             prof_list = [""]
 
-        # commissions
+        # comisiones
         commissions = meta.get('commissions') or meta.get('commisions') or meta.get('commisiones') or {}
-        comm_items = []
         if isinstance(commissions, dict):
-            for c_key, c_val in commissions.items():
-                cap = None
-                assigned_professors = None
-                # c_val puede ser dict con capacity y professor(s)
-                if isinstance(c_val, dict):
-                    for k in ('capacity', 'cupo', 'cupos', 'vacantes'):
-                        if k in c_val and c_val[k] is not None:
-                            try:
-                                cap = int(c_val[k])
-                            except Exception:
-                                cap = None
-                            break
-                    if 'professor' in c_val and c_val['professor']:
-                        assigned_professors = _ensure_list(c_val['professor'])
-                    elif 'professors' in c_val and c_val['professors']:
-                        assigned_professors = _ensure_list(c_val['professors'])
-                    elif 'docente' in c_val and c_val['docente']:
-                        assigned_professors = _ensure_list(c_val['docente'])
-                else:
-                    if c_val is not None:
-                        try:
-                            cap = int(c_val)
-                        except Exception:
-                            cap = None
-                comm_items.append((c_key, cap, assigned_professors))
+            comm_items = list(commissions.items()) or [(None, None)]
         elif isinstance(commissions, list):
-            for c in commissions:
-                comm_items.append((c, None, None))
+            comm_items = [(c, None) for c in commissions] or [(None, None)]
         else:
-            comm_items = [(None, None, None)]
+            comm_items = [(None, None)]
 
         tipo = meta.get('type') or meta.get('tipo') or ""
         tipo = tipo.capitalize() if isinstance(tipo, str) else ""
+
         turno = meta.get('turno') or meta.get('turn') or ""
 
-        # expandir: por año, por profesor, por comisión (respetando asociaciones)
+        # generar entradas: por cada año, por cada profesor y por cada comisión
         for year in norm_years:
             for prof in prof_list:
-                prof_info = {}
-                if isinstance(professors, dict):
-                    prof_info = professors.get(prof, {}) if prof in professors else {}
-
-                prof_specified_comms = None
-                if isinstance(prof_info, dict):
-                    if 'commissions' in prof_info and prof_info.get('commissions') is not None:
-                        prof_specified_comms = _ensure_list(prof_info.get('commissions'))
-                    elif 'comisiones' in prof_info and prof_info.get('comisiones') is not None:
-                        prof_specified_comms = _ensure_list(prof_info.get('comisiones'))
-
-                if comm_items and comm_items != [(None, None, None)]:
-                    for com, cap, assigned_profs in comm_items:
-                        # Si la comisión tiene assigned_profs y el profesor no está en la lista -> saltar
-                        if assigned_profs is not None:
-                            assigned_clean = [p.strip() for p in assigned_profs if isinstance(p, str)]
-                            if not prof or prof.strip() not in assigned_clean:
-                                continue
-                        # Si el profesor especificó comisiones y esta no está en su lista -> saltar
-                        if prof_specified_comms is not None:
-                            spec_clean = [str(x).strip() for x in prof_specified_comms]
-                            if not com or str(com).strip() not in spec_clean:
-                                continue
-
+                # si no hay comisiones definidas (ej. materias grupales), crear una entrada sin comision
+                if comm_items and comm_items != [(None, None)]:
+                    for com, cap in comm_items:
                         entry = {
                             "materia": materia_name,
                             "profesor": prof or "",
@@ -139,6 +81,7 @@ def _normalize_from_dict(data_dict):
                         }
                         items.append(entry)
                 else:
+                    # entrada sin comision (grupal u otros)
                     entry = {
                         "materia": materia_name,
                         "profesor": prof or "",
@@ -149,11 +92,10 @@ def _normalize_from_dict(data_dict):
                         "tipo": tipo
                     }
                     items.append(entry)
-
     return items
 
 def cargar_materias():
-    """Carga materias desde el archivo apuntado por INSTRUMENTS_FILE."""
+    """Carga materias desde instruments.json"""
     global MATERIAS
 
     if not INSTRUMENTS_FILE.exists():
@@ -165,13 +107,16 @@ def cargar_materias():
         with open(INSTRUMENTS_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
+        # Si es lista, tomar tal cual (pero normalizar 'año' si viene como lista o str)
         if isinstance(data, list):
+            # normalize items: ensure 'año' is int when possible
             normalized = []
             for it in data:
                 if not isinstance(it, dict):
                     continue
                 año = it.get('año') or it.get('anio')
                 if isinstance(año, (list, tuple)):
+                    # expandir: crear una entrada por cada año en la lista
                     for y in año:
                         new = dict(it)
                         try:
@@ -187,8 +132,11 @@ def cargar_materias():
                             pass
                     normalized.append(it)
             MATERIAS = normalized
+
+        # Si es dict, convertir a lista razonable (y expandir por año)
         elif isinstance(data, dict):
             MATERIAS = _normalize_from_dict(data)
+
         else:
             MATERIAS = []
 
@@ -200,11 +148,13 @@ def cargar_materias():
         MATERIAS = []
         return MATERIAS
 
-# cargar al importar
+
+# Cargar al importar el módulo
 MATERIAS = cargar_materias()
 
 
 def get_todas_materias():
+    """Obtiene lista de todas las materias únicas."""
     materias = set()
     for mat in MATERIAS:
         if "materia" in mat:
@@ -213,9 +163,14 @@ def get_todas_materias():
 
 
 def get_materias_por_anio(anio):
+    """
+    Filtra materias por año.
+    Ahora soporta que mat['año'] sea int, str o lista.
+    """
     materias_set = set()
     for mat in MATERIAS:
         mat_anio = mat.get("año") or mat.get("anio") or mat.get("Año")
+        # normalizar
         if isinstance(mat_anio, list):
             if anio in mat_anio:
                 materias_set.add(mat.get("materia"))
@@ -224,13 +179,17 @@ def get_materias_por_anio(anio):
                 if mat_anio is not None and int(mat_anio) == int(anio):
                     materias_set.add(mat.get("materia"))
             except Exception:
+                # comparación fallback como strings
                 if str(mat_anio) == str(anio):
                     materias_set.add(mat.get("materia"))
+
     result = sorted(list(materias_set))
+    print(f"[DEBUG] Año {anio}: {len(result)} materias encontradas")
     return result
 
 
 def _normalize_anio(mat_anio):
+    """Normaliza el campo año para comparaciones: puede ser int, str, list, None."""
     if mat_anio is None:
         return []
     if isinstance(mat_anio, (list, tuple)):
@@ -254,26 +213,39 @@ def _normalize_anio(mat_anio):
 
 
 def get_profesores_materia(materia, anio=None):
+    """
+    Devuelve lista de profesores para una materia.
+    Si `anio` está dado, intenta filtrar por año.
+    Fallback: si no hay resultados exactos, busca por 'instrumento' (texto después de ':')
+    y devuelve profesores asociados a ese instrumento (de cualquier año).
+    Si aún así no hay profesores, devuelve ['A Designar'] como opción por defecto.
+    """
     materia_q = (materia or "").strip()
     profesores = set()
 
+    # 1) Búsqueda exacta materia (+ año si se pasó)
     for mat in MATERIAS:
         if (mat.get("materia") or "").strip() != materia_q:
             continue
+
         if anio is not None:
             mat_anio_list = _normalize_anio(mat.get("año") or mat.get("anio"))
             if mat_anio_list:
                 if int(anio) not in mat_anio_list:
                     continue
             else:
+                # si la entrada no tiene año, ignorarla en la búsqueda por año
                 continue
+
         prof = (mat.get("profesor") or "").strip()
         if prof:
             profesores.add(prof)
 
+    # 2) Si encontramos profesores exactos, devolverlos
     if profesores:
         return sorted(profesores)
 
+    # 3) Fallback por "instrumento" (texto después de ':') — buscar substring
     instrument_key = materia_q.lower().split(":", 1)[-1].strip() if ":" in materia_q else materia_q.lower()
     if instrument_key:
         for mat in MATERIAS:
@@ -282,37 +254,47 @@ def get_profesores_materia(materia, anio=None):
                 continue
             if anio is not None:
                 mat_anio_list = _normalize_anio(mat.get("año") or mat.get("anio"))
-                # allow fallback
+                # permitir tomar profesores de otros años si no hay lista o si coincide
+                if mat_anio_list and int(anio) not in mat_anio_list:
+                    # no coincide el año -> aún así podemos aceptar como fallback, así que OMITIMOS esta línea
+                    pass
             prof = (mat.get("profesor") or "").strip()
             if prof:
                 profesores.add(prof)
 
     if profesores:
         return sorted(profesores)
+
+    # 4) Ultimate fallback: devolver opción por defecto para que el combo muestre algo
     return ["A Designar"]
 
 
 def get_comisiones_profesor(materia, profesor, anio=None):
     """
-    Devuelve comisiones válidas para la pareja materia+profesor.
-    Implementa comportamiento esperado: sólo mostrar las comisiones
-    que pertenecen a ese profesor según la fuente.
+    Devuelve lista de comisiones para materia+profesor (+anio opcional).
+    Si no hay comisiones explícitas pero sí existen entradas para el profesor (con comision vacía),
+    devuelve [''] para permitir seleccionar al profesor. Si no hay nada, intenta fallback por instrumento.
     """
     materia_q = (materia or "").strip()
     comisiones = set()
     found_prof_entries = False
 
-    # Buscar registros exactos materia+profesor
+    # 1) Búsqueda exacta por materia+profesor (+anio si se pasó)
     for mat in MATERIAS:
         if (mat.get("materia") or "").strip() != materia_q:
             continue
         if (profesor or "") != (mat.get("profesor") or ""):
             continue
+
         if anio is not None:
             mat_anio_list = _normalize_anio(mat.get("año") or mat.get("anio"))
             if mat_anio_list:
                 if int(anio) not in mat_anio_list:
                     continue
+            else:
+                # si no hay año en el registro, continuamos (pero no lo filtramos fuera)
+                pass
+
         found_prof_entries = True
         com = mat.get("comision")
         if com is None:
@@ -320,11 +302,14 @@ def get_comisiones_profesor(materia, profesor, anio=None):
         comisiones.add(com)
 
     if found_prof_entries:
+        # si solo encontramos comisiones vacías -> devolver ['']
         if not comisiones or (len(comisiones) == 1 and ("" in comisiones)):
             return [""]
-        return sorted(comisiones, key=lambda x: (0 if x else 1, x))
+        # ordenar con comisiones explícitas primero
+        result = sorted(comisiones, key=lambda x: (0 if x else 1, x))
+        return result
 
-    # Fallback: buscar por instrumento y profesor
+    # 2) Fallback: buscar por instrumento (texto después de ':') y tomar comisiones para el profesor
     instrument_key = materia_q.lower().split(":", 1)[-1].strip() if ":" in materia_q else materia_q.lower()
     if instrument_key:
         for mat in MATERIAS:
@@ -333,39 +318,63 @@ def get_comisiones_profesor(materia, profesor, anio=None):
                 continue
             if (profesor or "") != (mat.get("profesor") or ""):
                 continue
+            # opción: no filtrar por año aquí para tener mayor cobertura
             com = mat.get("comision")
             if com is None:
                 com = ""
             comisiones.add(com)
 
     if comisiones:
+        # si solo hay comision vacía devolvemos ['']
         if len(comisiones) == 1 and "" in comisiones:
             return [""]
         return sorted(comisiones, key=lambda x: (0 if x else 1, x))
 
+    # 3) Si no hay nada, devolver lista vacía para que la UI muestre nada o maneje fallback
     return []
 
 
 def get_horario(materia, profesor, comision):
     """
-    Obtiene horario (campo 'turno' si existe) para la tupla materia/profesor/comision.
-    Devuelve cadena vacía si no hay información.
+    Obtiene horario para materia, profesor y comisión.
+    Args:
+        materia (str): Nombre de la materia
+        profesor (str): Nombre del profesor
+        comision (str): Comisión
+    Returns:
+        str: Horario formateado
     """
     for mat in MATERIAS:
         if (mat.get("materia") == materia and
             mat.get("profesor") == profesor and
-            (mat.get("comision") or "") == (comision or "")):
+            mat.get("comision") == comision):
+
+            # Intentar obtener turno
             turno = mat.get("turno") or mat.get("Turno", "")
+
             if turno:
                 return f"Turno: {turno}"
+
+            # Si no hay turno, buscar otros campos de horario
             horario = mat.get("horario") or mat.get("Horario", "")
             if horario:
                 return horario
+
             return "Sin horario definido"
+
     return ""
 
 
 def get_info_completa(materia, profesor, comision):
+    """
+    Obtiene información completa de una materia/profesor/comisión.
+    Args:
+        materia (str): Nombre de la materia
+        profesor (str): Nombre del profesor
+        comision (str): Comisión
+    Returns:
+        dict: Información completa o None
+    """
     for mat in MATERIAS:
         if (mat.get("materia") == materia and
             mat.get("profesor") == profesor and
@@ -375,32 +384,56 @@ def get_info_completa(materia, profesor, comision):
 
 
 def buscar_materias(texto):
+    """
+    Busca materias que contengan el texto.
+    Args:
+        texto (str): Texto a buscar
+    Returns:
+        list: Lista de materias que coinciden
+    """
     texto_lower = texto.lower()
     resultados = []
+
     for mat in MATERIAS:
         materia = mat.get("materia", "")
         if texto_lower in materia.lower():
             resultados.append(materia)
+
     return sorted(list(set(resultados)))
 
 
 def get_turnos_disponibles():
+    """
+    Obtiene lista de turnos únicos disponibles desde el CSV.
+    Returns:
+        list: Lista de turnos disponibles
+    """
     turnos = set()
     for mat in MATERIAS:
         turno = mat.get("turno", "")
         if turno:
             turnos.add(turno)
+
+    # Ordenar para tener consistencia
     return sorted(list(turnos))
 
 
 def get_estadisticas():
+    """
+    Obtiene estadísticas de las materias cargadas.
+    Returns:
+        dict: Estadísticas
+    """
     stats = {
         "total_registros": len(MATERIAS),
         "materias_unicas": len(get_todas_materias()),
         "profesores_unicos": len(set(mat.get("profesor","") for mat in MATERIAS)),
         "por_año": {}
     }
+
+    # Contar por año
     for anio in [1, 2, 3, 4]:
         materias_anio = get_materias_por_anio(anio)
         stats["por_año"][anio] = len(materias_anio)
+
     return stats
