@@ -2,10 +2,14 @@
 Helpers para cargar cupos por materia y calcular cupos restantes.
 Usar desde la UI: from services.cupos import calcular_cupos_restantes, get_cupos
 """
-import os, traceback
+import os, traceback, time
 from typing import Tuple, Any, Optional
 
 from config.settings import settings
+
+# Cache de sincronización para evitar sincronizar demasiado frecuentemente
+_last_sync_time = None
+SYNC_INTERVAL_SECONDS = 300  # 5 minutos
 
 try:
     import yaml
@@ -68,28 +72,36 @@ def get_cupos() -> Tuple[bool, Any]:
 def calcular_cupos_restantes() -> Tuple[bool, Any]:
     """
     Calcula cupos restantes por materia.
-    SINCRONIZA DESDE GOOGLE SHEETS PRIMERO.
+    SINCRONIZA DESDE GOOGLE SHEETS SOLO SI PASÓ EL INTERVALO DE CACHE.
     """
+    global _last_sync_time
+    
     try:
-        # 1. SINCRONIZAR DESDE GOOGLE SHEETS PRIMERO
-        try:
-            from database.google_sheets import sincronizar_bidireccional
-            from config.settings import settings
-            
-            if settings.get("google_sheets.enabled", False):
-                sheet_id = (settings.get("google_sheets.spreadsheet_id") or 
-                           settings.get("google_sheets.sheet_key") or 
-                           settings.get("spreadsheet_id"))
+        # 1. SINCRONIZAR DESDE GOOGLE SHEETS SOLO SI PASÓ EL INTERVALO
+        now = time.time()
+        if _last_sync_time is None or (now - _last_sync_time) > SYNC_INTERVAL_SECONDS:
+            try:
+                from database.google_sheets import sincronizar_bidireccional
+                from config.settings import settings
                 
-                if sheet_id:
-                    print("[DEBUG] Sincronizando desde Google Sheets antes de contar cupos...")
-                    ok, msg = sincronizar_bidireccional(sheet_id)
-                    if ok:
-                        print("[DEBUG] Sincronización exitosa")
-                    else:
-                        print(f"[WARNING] No se pudo sincronizar: {msg}")
-        except Exception as e:
-            print(f"[WARNING] Error en sync previo a contar cupos: {e}")
+                if settings.get("google_sheets.enabled", False):
+                    sheet_id = (settings.get("google_sheets.spreadsheet_id") or 
+                               settings.get("google_sheets.sheet_key") or 
+                               settings.get("spreadsheet_id"))
+                    
+                    if sheet_id:
+                        print(f"[DEBUG] Sincronizando desde Google Sheets (última sync: {int(now - (_last_sync_time or now))}s atrás)...")
+                        ok, msg = sincronizar_bidireccional(sheet_id)
+                        if ok:
+                            print("[DEBUG] Sincronización exitosa")
+                            _last_sync_time = now
+                        else:
+                            print(f"[WARNING] No se pudo sincronizar: {msg}")
+            except Exception as e:
+                print(f"[WARNING] Error en sync previo a contar cupos: {e}")
+        else:
+            elapsed = int(now - _last_sync_time)
+            print(f"[DEBUG] Usando cache de sincronización (última sync: {elapsed}s atrás, próxima en {SYNC_INTERVAL_SECONDS - elapsed}s)")
         
         # 2. CARGAR CUPOS CONFIGURADOS
         ok, cupos = get_cupos()
@@ -103,13 +115,14 @@ def calcular_cupos_restantes() -> Tuple[bool, Any]:
             if str(r.get("en_lista_espera","No")).strip().lower() in ("sí","si","yes","true"):
                 continue
             mat = str(r.get("materia","") or "")
+            prof = str(r.get("profesor","") or "")
             com = str(r.get("comision","") or "")
-            key = (mat, com)
+            key = (mat, prof, com)
             counts[key] = counts.get(key, 0) + 1
             
         # 4. CALCULAR RESTANTES
         results = {}
-        materias_set = set([m for m,_ in counts.keys()]) | set((list(cupos.keys()) if isinstance(cupos, dict) else []))
+        materias_set = set([m for m,_,_ in counts.keys()]) | set((list(cupos.keys()) if isinstance(cupos, dict) else []))
         for mat in materias_set:
             cupo_val = None
             if isinstance(cupos, dict) and mat in cupos:
@@ -122,27 +135,28 @@ def calcular_cupos_restantes() -> Tuple[bool, Any]:
                     except Exception:
                         cupo_val = None
             
-            # Contar por comisión
-            comms_for_mat = {}
-            for (m, c), cnt in counts.items():
+            # Contar por profesor y comisión
+            profs_comms_for_mat = {}
+            for (m, p, c), cnt in counts.items():
                 if m == mat:
-                    comms_for_mat[c] = cnt
+                    key_pc = (p, c)
+                    profs_comms_for_mat[key_pc] = cnt
                     
             if cupo_val is not None:
-                total = sum(comms_for_mat.values())
+                total = sum(profs_comms_for_mat.values())
                 restante = max(0, cupo_val - total)
                 results[mat] = {
                     "cupo": cupo_val,
                     "inscriptos": total,
                     "restante": restante,
-                    "comisiones": comms_for_mat
+                    "profesores_comisiones": profs_comms_for_mat
                 }
             else:
                 results[mat] = {
                     "cupo": None,
-                    "inscriptos": sum(comms_for_mat.values()),
+                    "inscriptos": sum(profs_comms_for_mat.values()),
                     "restante": None,
-                    "comisiones": comms_for_mat
+                    "profesores_comisiones": profs_comms_for_mat
                 }
                 
         return True, results
