@@ -37,7 +37,7 @@ def verify_remote_sync(sheet_id: str, sheet_name: Optional[str] = None) -> Tuple
             sheet_name = sheets_meta[0].get("properties", {}).get("title", "Sheet1")
 
         # Construir rango y leer
-        range_name = f"'{sheet_name}'!A1:Z9999"
+        range_name = f"'{sheet_name}'"
         resp = service.spreadsheets().values().get(spreadsheetId=sheet_id, range=range_name).execute()
         values = resp.get("values", []) or []
 
@@ -241,7 +241,7 @@ def subir_a_google_sheets(registros: List[Dict[str, Any]], sheet_id: str, sheet_
 
         # READBACK: leer inmediatamente lo escrito y comparar
         try:
-            read_range = f"{name_for_range}!A1:Z{len(values)+5}"  # leer algunas filas extra
+            read_range = f"{name_for_range}"
             resp = service.spreadsheets().values().get(spreadsheetId=sheet_id, range=read_range).execute()
             read_values = resp.get("values", []) or []
             print("[DEBUG] subir_a_google_sheets: readback filas leídas (incl header)=", len(read_values))
@@ -279,7 +279,7 @@ def descargar_desde_google_sheets(sheet_id: str, sheet_name: Optional[str] = Non
             return True, []
         if not sheet_name:
             sheet_name = sheets[0].get("properties", {}).get("title", "Sheet1")
-        range_name = f"'{sheet_name}'!A1:Z9999"
+        range_name = f"'{sheet_name}'"
         resp = service.spreadsheets().values().get(spreadsheetId=sheet_id, range=range_name).execute()
         values = resp.get("values", []) or []
         if not values:

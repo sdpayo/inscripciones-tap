@@ -73,7 +73,7 @@ def descargar_desde_google_sheets(sheet_key: str) -> Tuple[bool, Any]:
                 if err:
                     return False, err
                 sheet_name = settings.get("google_sheets.sheet_name", "") or "Sheet1"
-                range_name = f"'{sheet_name}'!A1:Z9999"
+                range_name = f"'{sheet_name}'"
                 resp = service.spreadsheets().values().get(spreadsheetId=sheet_key, range=range_name).execute()
                 values = resp.get("values", []) or []
                 if not values:
