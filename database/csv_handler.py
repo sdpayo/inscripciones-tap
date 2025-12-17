@@ -11,10 +11,27 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any, Tuple, Optional
 
-from config.settings import CSV_FILE, CSV_FIELDS
+from config.settings import CSV_FILE, CSV_FIELDS, DATA_DIR
 
 # Asegurar que el directorio existe
 CSV_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _guardar_backup_csv(registros: List[Dict[str, Any]]) -> Tuple[bool, str]:
+    """Guarda backup de todos los registros en inscripciones_backup.csv"""
+    try:
+        backup_path = DATA_DIR / "inscripciones_backup.csv"
+        with open(backup_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS, extrasaction="ignore")
+            writer.writeheader()
+            for r in registros:
+                # asegurarnos de que todos los valores sean strings
+                row = {k: ("" if r.get(k) is None else r.get(k)) for k in CSV_FIELDS}
+                writer.writerow(row)
+        return True, "Backup guardado"
+    except Exception as e:
+        print(f"[WARN] No se pudo guardar backup: {e}")
+        return False, str(e)
 
 
 def cargar_registros() -> List[Dict[str, Any]]:
@@ -109,6 +126,11 @@ def guardar_registro(registro: Dict[str, Any]) -> Tuple[bool, str]:
             registros.append(registro)
 
         ok, msg = guardar_todos_registros(registros)
+        
+        # Guardar backup automático (no debe fallar la operación principal)
+        if ok:
+            _guardar_backup_csv(registros)
+        
         return ok, msg
     except Exception as e:
         return False, f"Error al guardar registro: {e}"
