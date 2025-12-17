@@ -207,8 +207,11 @@ def sync_before_count():
             
         from database.google_sheets import sync_from_google_sheets
         ok, msg = sync_from_google_sheets(sheet_id)
+        if not ok:
+            print(f"[WARNING] sync_before_count: {msg}")
         return ok
-    except Exception:
+    except Exception as e:
+        print(f"[WARNING] sync_before_count exception: {e}")
         return False
 
 

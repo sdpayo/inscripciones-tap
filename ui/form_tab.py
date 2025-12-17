@@ -1721,8 +1721,8 @@ class FormTab(BaseTab):
             if now - last_sync >= 5:
                 sync_before_count()
                 self._last_sync_time = now
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[WARNING] _actualizar_cupo_disponible sync error: {e}")
             
         try:
             materia = (self.materia_var.get() if hasattr(self, "materia_var") else "") or ""
