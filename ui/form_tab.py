@@ -1711,21 +1711,13 @@ class FormTab(BaseTab):
     # ================== MÉTODO NUEVO: actualizar cupo ==================
     def _actualizar_cupo_disponible(self):
         """
-        Actualiza el label de cupo disponible sincronizando primero con Google Sheets
-        y luego contando inscripciones según materia/profesor/comisión seleccionados.
+        Actualiza el label de cupo disponible contando inscripciones según 
+        materia/profesor/comisión seleccionados.
+        NO sincroniza aquí (se usa el cache de cupos.py para optimizar).
         """
         try:
-            # 1. Sincronizar desde Google Sheets antes de contar
-            print("[DEBUG] Sincronizando desde Google Sheets antes de contar cupos...")
-            try:
-                from database.csv_handler import sync_before_count
-                ok, msg = sync_before_count()
-                if ok:
-                    print("[DEBUG] Sincronización exitosa")
-                else:
-                    print(f"[DEBUG] {msg}")
-            except Exception as e:
-                print(f"[WARNING] Error sincronizando: {e}")
+            # 1. NO sincronizar aquí - se usa el cache de calcular_cupos_restantes
+            # que sincroniza solo cada 5 minutos para evitar lentitud
             
             # 2. Obtener valores seleccionados
             materia = (self.materia_var.get() if hasattr(self, "materia_var") else "") or ""

@@ -212,7 +212,7 @@ def sync_before_count():
 def contar_inscripciones_materia(materia: str, profesor: Optional[str] = None,
                                  comision: Optional[str] = None, 
                                  excluir_lista_espera: bool = True,
-                                 force_sync: bool = True) -> int:
+                                 force_sync: bool = False) -> int:
     """
     Cuenta inscripciones filtrando por materia, opcionalmente por profesor y comisión.
     
@@ -221,12 +221,12 @@ def contar_inscripciones_materia(materia: str, profesor: Optional[str] = None,
         profesor: nombre del profesor (opcional)
         comision: nombre/código de la comisión (opcional)
         excluir_lista_espera: si True, no cuenta registros en lista de espera
-        force_sync: si True, sincroniza desde Sheets antes de contar
+        force_sync: si True, sincroniza desde Sheets antes de contar (por defecto False, se usa cache de cupos.py)
     
     Returns:
         int: cantidad de inscripciones que cumplen los filtros
     """
-    # Sincronizar antes de contar si force_sync=True
+    # Sincronizar antes de contar solo si force_sync=True (normalmente False, se usa el cache de cupos.py)
     if force_sync:
         try:
             sync_before_count()
