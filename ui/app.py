@@ -22,11 +22,10 @@ class InscripcionApp:
         
         # Crear pestañas
         self._create_tabs()
-        # Ejecutar la sincronización inicial desde Google Sheets
-        try:
-            self._startup_sync_from_sheets(show_popup=True)
-        except Exception:
-            pass
+        
+        # Sincronizar al inicio si está habilitado
+        if settings.get("google_sheets.enabled", True):
+            self.root.after(1000, lambda: self._startup_sync_from_sheets(show_popup=False))
         
     def _setup_style(self):
         """Configura estilos de la aplicación."""
