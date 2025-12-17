@@ -136,17 +136,44 @@ def sync_from_google_sheets(sheet_key: str) -> Tuple[bool, str]:
 
 
 def sincronizar_bidireccional(sheet_key: Optional[str] = None) -> Tuple[bool, str]:
+    """
+    Wrapper para sincronización bidireccional.
+    Delega a services.google_sheets.sincronizar_bidireccional si existe.
+    """
     ok, msg = _require_mod()
     if not ok:
         return False, msg
     try:
-        if hasattr(_mod, "sincronizar_bidireccional"):
-            return _mod.sincronizar_bidireccional(sheet_key)
-        # fallback: upload local CSV to sheet
-        registros = cargar_registros()
+        # Resolver sheet_key si no se proveyó
         if not sheet_key:
             sheet_key = settings.get("google_sheets.sheet_key", "") or settings.get("spreadsheet_id", "")
-        return subir_a_google_sheets(registros, sheet_key)
+        
+        if not sheet_key:
+            return False, "No sheet_key configurado"
+        
+        # Usar la implementación del módulo si existe
+        if hasattr(_mod, "sincronizar_bidireccional"):
+            return _mod.sincronizar_bidireccional(sheet_key)
+        
+        # Fallback: hacer sync manual (download + save + upload)
+        # 1. Descargar
+        ok_down, result = descargar_desde_google_sheets(sheet_key)
+        if not ok_down:
+            return False, f"Error descargando: {result}"
+        
+        registros_remotos = result or []
+        
+        # 2. Guardar localmente
+        from database.csv_handler import guardar_todos_registros
+        ok_save, msg_save = guardar_todos_registros(registros_remotos)
+        if not ok_save:
+            return False, f"Error guardando CSV: {msg_save}"
+        
+        # 3. Subir desde local (para asegurar consistencia)
+        registros = cargar_registros()
+        ok_up, msg_up = subir_a_google_sheets(registros, sheet_key)
+        
+        return True, f"Sincronizado: {len(registros)} registros"
     except Exception as e:
         return False, str(e)
 

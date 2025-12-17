@@ -330,6 +330,55 @@ def sync_in_background(registro: Dict[str, Any], operation: str = "insert", shee
     t.start()
     return True, "Worker started"
 
+def sincronizar_bidireccional(sheet_id: str, sheet_name: Optional[str] = None) -> Tuple[bool, str]:
+    """
+    Sincronización bidireccional con Google Sheets con cache integrado.
+    1. Verifica si es necesario sincronizar (cache)
+    2. Descarga TODOS los registros desde Google Sheets (rango abierto)
+    3. Guarda en CSV local
+    4. Sube cambios locales a Google Sheets
+    Devuelve (ok, mensaje).
+    """
+    try:
+        from services.sync_cache import should_sync, mark_synced
+        
+        # Solo sincronizar si pasó el tiempo de cache
+        if not should_sync():
+            print("[DEBUG] sincronizar_bidireccional: Usando cache de sincronización")
+            return True, "Cache activo - no es necesario sincronizar"
+        
+        print("[DEBUG] sincronizar_bidireccional: Sincronizando desde Google Sheets...")
+        
+        # 1. Descargar desde Sheets con rango abierto
+        ok, data = descargar_desde_google_sheets(sheet_id, sheet_name)
+        if not ok:
+            return False, f"Error descargando desde Sheets: {data}"
+        
+        registros_remotos = data or []
+        print(f"[DEBUG] sincronizar_bidireccional: Descargados {len(registros_remotos)} registros")
+        
+        # 2. Guardar en CSV local
+        from database.csv_handler import guardar_todos_registros, cargar_registros
+        ok_save, msg_save = guardar_todos_registros(registros_remotos)
+        if not ok_save:
+            return False, f"Error guardando CSV local: {msg_save}"
+        
+        # 3. Subir cambios locales (si los hay) - push completo para asegurar consistencia
+        registros_locales = cargar_registros()
+        ok_upload, msg_upload = subir_a_google_sheets(registros_locales, sheet_id, sheet_name)
+        if not ok_upload:
+            print(f"[WARN] sincronizar_bidireccional: Error subiendo a Sheets: {msg_upload}")
+            # No es crítico, ya tenemos los datos locales actualizados
+        
+        # Marcar que se sincronizó
+        mark_synced()
+        
+        return True, f"Sincronizado correctamente: {len(registros_locales)} registros"
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return False, str(e)
+
 # Reemplaza la función sync_remote_to_local en services/google_sheets.py por esta versión
 def sync_remote_to_local(sheet_key: Optional[str] = None, sheet_name: Optional[str] = None, replace_local: bool = True) -> Tuple[bool, Any]:
     """
