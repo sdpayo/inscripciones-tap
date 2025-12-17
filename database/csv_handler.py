@@ -189,34 +189,30 @@ def buscar_por_id(reg_id: str) -> Optional[Dict[str, Any]]:
 
 
 def sync_before_count():
-    """
-    Helper: sincroniza desde Google Sheets si está habilitado.
-    Devuelve True si sync fue exitoso o no era necesario.
-    """
+    """Sincroniza desde Google Sheets antes de contar inscripciones."""
     try:
+        from database.google_sheets import sincronizar_bidireccional
         from config.settings import settings
         
         if not settings.get("google_sheets.enabled", False):
-            return True  # No está habilitado, no es necesario
+            return False, "Google Sheets deshabilitado"
             
-        # Try multiple possible keys for sheet ID (for compatibility)
-        sheet_id = settings.get("google_sheets.spreadsheet_id") or settings.get("google_sheets.sheet_key") or settings.get("spreadsheet_id")
+        sheet_id = (settings.get("google_sheets.spreadsheet_id") or 
+                   settings.get("google_sheets.sheet_key") or 
+                   settings.get("spreadsheet_id"))
         
         if not sheet_id:
-            return True  # No hay sheet configurado
+            return False, "No hay sheet_id configurado"
             
-        from database.google_sheets import sync_from_google_sheets
-        ok, msg = sync_from_google_sheets(sheet_id)
-        if not ok:
-            print(f"[WARNING] sync_before_count: {msg}")
-        return ok
+        return sincronizar_bidireccional(sheet_id)
     except Exception as e:
-        print(f"[WARNING] sync_before_count exception: {e}")
-        return False
+        return False, f"Error: {e}"
 
 
 def contar_inscripciones_materia(materia: str, profesor: Optional[str] = None,
-                                 comision: Optional[str] = None, excluir_lista_espera: bool = True) -> int:
+                                 comision: Optional[str] = None, 
+                                 excluir_lista_espera: bool = True,
+                                 force_sync: bool = True) -> int:
     """
     Cuenta inscripciones filtrando por materia, opcionalmente por profesor y comisión.
     
@@ -225,10 +221,18 @@ def contar_inscripciones_materia(materia: str, profesor: Optional[str] = None,
         profesor: nombre del profesor (opcional)
         comision: nombre/código de la comisión (opcional)
         excluir_lista_espera: si True, no cuenta registros en lista de espera
+        force_sync: si True, sincroniza desde Sheets antes de contar
     
     Returns:
         int: cantidad de inscripciones que cumplen los filtros
     """
+    # Sincronizar antes de contar si force_sync=True
+    if force_sync:
+        try:
+            sync_before_count()
+        except Exception as e:
+            print(f"[WARNING] No se pudo sincronizar antes de contar: {e}")
+    
     registros = cargar_registros()
     count = 0
     

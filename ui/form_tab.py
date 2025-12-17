@@ -1718,19 +1718,14 @@ class FormTab(BaseTab):
             # 1. Sincronizar desde Google Sheets antes de contar
             print("[DEBUG] Sincronizando desde Google Sheets antes de contar cupos...")
             try:
-                from services.google_sheets import sync_remote_to_local
-                ok, msg = sync_remote_to_local()
-            except ImportError:
-                # Fallback to database module if services not available
-                from database.google_sheets import sincronizar_bidireccional
-                from config.settings import settings
-                sheet_key = settings.get("google_sheets.sheet_key", "") or settings.get("spreadsheet_id", "")
-                ok, msg = sincronizar_bidireccional(sheet_key) if sheet_key else (False, "Google Sheets configuration missing - configure sheet key in settings")
-            
-            if ok:
-                print("[DEBUG] Sincronización exitosa")
-            else:
-                print(f"[WARNING] Sincronización falló: {msg}")
+                from database.csv_handler import sync_before_count
+                ok, msg = sync_before_count()
+                if ok:
+                    print("[DEBUG] Sincronización exitosa")
+                else:
+                    print(f"[DEBUG] {msg}")
+            except Exception as e:
+                print(f"[WARNING] Error sincronizando: {e}")
             
             # 2. Obtener valores seleccionados
             materia = (self.materia_var.get() if hasattr(self, "materia_var") else "") or ""
@@ -1757,13 +1752,14 @@ class FormTab(BaseTab):
                 self.cupo_label.config(text="Sin cupo definido", foreground="gray")
                 return
             
-            # 4. Contar inscripciones actuales
+            # 4. Contar inscripciones actuales (sin force_sync ya que sincronizamos arriba)
             from database.csv_handler import contar_inscripciones_materia
             inscritos = contar_inscripciones_materia(
                 materia, 
                 profesor if profesor else None,
                 comision if comision else None,
-                excluir_lista_espera=True
+                excluir_lista_espera=True,
+                force_sync=False
             )
             
             print(f"[DEBUG CUPOS] Materia: {materia} | Profesor: {profesor} | Comisión: {comision}")

@@ -73,16 +73,17 @@ def calcular_cupos_restantes() -> Tuple[bool, Any]:
     try:
         # 1. SINCRONIZAR DESDE GOOGLE SHEETS PRIMERO
         try:
-            from database.google_sheets import sync_from_google_sheets
+            from database.google_sheets import sincronizar_bidireccional
             from config.settings import settings
             
             if settings.get("google_sheets.enabled", False):
-                # Try multiple possible keys for sheet ID (for compatibility)
-                sheet_id = settings.get("google_sheets.spreadsheet_id") or settings.get("google_sheets.sheet_key") or settings.get("spreadsheet_id")
+                sheet_id = (settings.get("google_sheets.spreadsheet_id") or 
+                           settings.get("google_sheets.sheet_key") or 
+                           settings.get("spreadsheet_id"))
                 
                 if sheet_id:
                     print("[DEBUG] Sincronizando desde Google Sheets antes de contar cupos...")
-                    ok, msg = sync_from_google_sheets(sheet_id)
+                    ok, msg = sincronizar_bidireccional(sheet_id)
                     if ok:
                         print("[DEBUG] Sincronización exitosa")
                     else:
