@@ -66,10 +66,36 @@ def get_cupos() -> Tuple[bool, Any]:
         return False, f"Error leyendo cupos: {e}\n{traceback.format_exc()}"
 
 def calcular_cupos_restantes() -> Tuple[bool, Any]:
+    """
+    Calcula cupos restantes por materia.
+    SINCRONIZA DESDE GOOGLE SHEETS PRIMERO.
+    """
     try:
+        # 1. SINCRONIZAR DESDE GOOGLE SHEETS PRIMERO
+        try:
+            from database.google_sheets import sync_from_google_sheets
+            from config.settings import settings
+            
+            if settings.get("google_sheets.enabled", False):
+                # Try multiple possible keys for sheet ID (for compatibility)
+                sheet_id = settings.get("google_sheets.spreadsheet_id") or settings.get("google_sheets.sheet_key") or settings.get("spreadsheet_id")
+                
+                if sheet_id:
+                    print("[DEBUG] Sincronizando desde Google Sheets antes de contar cupos...")
+                    ok, msg = sync_from_google_sheets(sheet_id)
+                    if ok:
+                        print("[DEBUG] Sincronización exitosa")
+                    else:
+                        print(f"[WARNING] No se pudo sincronizar: {msg}")
+        except Exception as e:
+            print(f"[WARNING] Error en sync previo a contar cupos: {e}")
+        
+        # 2. CARGAR CUPOS CONFIGURADOS
         ok, cupos = get_cupos()
         if not ok:
             cupos = {}
+            
+        # 3. CONTAR INSCRIPTOS DESDE CSV (YA ACTUALIZADO)
         registros = cargar_registros()
         counts = {}
         for r in registros:
@@ -79,6 +105,8 @@ def calcular_cupos_restantes() -> Tuple[bool, Any]:
             com = str(r.get("comision","") or "")
             key = (mat, com)
             counts[key] = counts.get(key, 0) + 1
+            
+        # 4. CALCULAR RESTANTES
         results = {}
         materias_set = set([m for m,_ in counts.keys()]) | set((list(cupos.keys()) if isinstance(cupos, dict) else []))
         for mat in materias_set:
@@ -92,9 +120,30 @@ def calcular_cupos_restantes() -> Tuple[bool, Any]:
                         cupo_val = int(v)
                     except Exception:
                         cupo_val = None
-            ins = sum(cnt for (m,c), cnt in counts.items() if m == mat)
-            restante = None if cupo_val is None else max(0, int(cupo_val) - ins)
-            results[mat] = {"cupo": cupo_val, "inscriptos": ins, "restante": restante}
+            
+            # Contar por comisión
+            comms_for_mat = {}
+            for (m, c), cnt in counts.items():
+                if m == mat:
+                    comms_for_mat[c] = cnt
+                    
+            if cupo_val is not None:
+                total = sum(comms_for_mat.values())
+                restante = max(0, cupo_val - total)
+                results[mat] = {
+                    "cupo": cupo_val,
+                    "inscriptos": total,
+                    "restante": restante,
+                    "comisiones": comms_for_mat
+                }
+            else:
+                results[mat] = {
+                    "cupo": None,
+                    "inscriptos": sum(comms_for_mat.values()),
+                    "restante": None,
+                    "comisiones": comms_for_mat
+                }
+                
         return True, results
     except Exception as e:
         return False, f"Error calculando cupos: {e}\n{traceback.format_exc()}"
