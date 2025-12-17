@@ -200,13 +200,12 @@ def sync_before_count():
             return True  # No está habilitado, no es necesario
             
         sheet_id = settings.get("google_sheets.spreadsheet_id")
-        sheet_name = settings.get("google_sheets.sheet_name", "Inscripciones")
         
         if not sheet_id:
             return True  # No hay sheet configurado
             
-        from database.google_sheets import descargar_desde_google_sheets
-        ok, msg = descargar_desde_google_sheets(sheet_id, sheet_name)
+        from database.google_sheets import sync_from_google_sheets
+        ok, msg = sync_from_google_sheets(sheet_id)
         return ok
     except Exception:
         return False
