@@ -1725,7 +1725,7 @@ class FormTab(BaseTab):
                 from database.google_sheets import sincronizar_bidireccional
                 from config.settings import settings
                 sheet_key = settings.get("google_sheets.sheet_key", "") or settings.get("spreadsheet_id", "")
-                ok, msg = sincronizar_bidireccional(sheet_key) if sheet_key else (False, "No sheet key")
+                ok, msg = sincronizar_bidireccional(sheet_key) if sheet_key else (False, "Google Sheets configuration missing - configure sheet key in settings")
             
             if ok:
                 print("[DEBUG] Sincronización exitosa")
@@ -1749,7 +1749,7 @@ class FormTab(BaseTab):
             if info and "cupo" in info:
                 try:
                     cupo_total = int(info["cupo"])
-                except:
+                except (ValueError, TypeError):
                     pass
             
             # Si no hay cupo definido, indicarlo
@@ -1790,5 +1790,5 @@ class FormTab(BaseTab):
             traceback.print_exc()
             try:
                 self.cupo_label.config(text="Error al obtener cupo", foreground="red")
-            except:
+            except Exception:
                 pass
