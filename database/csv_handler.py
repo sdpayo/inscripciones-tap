@@ -188,80 +188,20 @@ def buscar_por_id(reg_id: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def sync_before_count():
-    """Sincroniza desde Google Sheets antes de contar inscripciones."""
-    try:
-        from database.google_sheets import sincronizar_bidireccional
-        from config.settings import settings
-        
-        if not settings.get("google_sheets.enabled", False):
-            return False, "Google Sheets deshabilitado"
-            
-        sheet_id = (settings.get("google_sheets.spreadsheet_id") or 
-                   settings.get("google_sheets.sheet_key") or 
-                   settings.get("spreadsheet_id"))
-        
-        if not sheet_id:
-            return False, "No hay sheet_id configurado"
-            
-        return sincronizar_bidireccional(sheet_id)
-    except Exception as e:
-        return False, f"Error: {e}"
-
-
 def contar_inscripciones_materia(materia: str, profesor: Optional[str] = None,
-                                 comision: Optional[str] = None, 
-                                 excluir_lista_espera: bool = True,
-                                 force_sync: bool = False) -> int:
-    """
-    Cuenta inscripciones filtrando por materia, opcionalmente por profesor y comisión.
-    
-    Args:
-        materia: nombre de la materia (requerido)
-        profesor: nombre del profesor (opcional)
-        comision: nombre/código de la comisión (opcional)
-        excluir_lista_espera: si True, no cuenta registros en lista de espera
-        force_sync: si True, sincroniza desde Sheets antes de contar (por defecto False, se usa cache de cupos.py)
-    
-    Returns:
-        int: cantidad de inscripciones que cumplen los filtros
-    """
-    # Sincronizar antes de contar solo si force_sync=True (normalmente False, se usa el cache de cupos.py)
-    if force_sync:
-        try:
-            sync_before_count()
-        except Exception as e:
-            print(f"[WARNING] No se pudo sincronizar antes de contar: {e}")
-    
+                                 comision: Optional[str] = None) -> int:
     registros = cargar_registros()
     count = 0
-    
     for r in registros:
-        # Excluir lista de espera si corresponde
-        if excluir_lista_espera:
-            en_espera = str(r.get("en_lista_espera", "No")).strip().lower()
-            if en_espera in ("sí", "si", "yes", "true", "1"):
-                continue
-        
-        # Filtrar por materia (requerido)
-        mat = str(r.get("materia", "") or "").strip()
-        if mat != materia:
+        if r.get("materia") != materia:
             continue
-        
-        # Filtrar por profesor si se especifica
-        if profesor:
-            prof = str(r.get("profesor", "") or "").strip()
-            if prof != profesor:
-                continue
-        
-        # Filtrar por comisión si se especifica
-        if comision:
-            com = str(r.get("comision", "") or "").strip()
-            if com != comision:
-                continue
-        
+        if profesor and r.get("profesor") != profesor:
+            continue
+        if comision and r.get("comision") != comision:
+            continue
+        if r.get("en_lista_espera", "No") == "Sí":
+            continue
         count += 1
-    
     return count
 
 

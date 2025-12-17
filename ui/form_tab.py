@@ -1248,12 +1248,6 @@ class FormTab(BaseTab):
         except Exception:
             print("[INFO] Inscripción guardada, ID:", str(nuevo_id)[:8])
 
-        # Actualizar cupo después de guardar
-        try:
-            self._actualizar_cupo_disponible()
-        except Exception as e:
-            print(f"[WARNING] No se pudo actualizar cupo después de guardar: {e}")
-
         try:
             self._limpiar()
         except Exception:
@@ -1711,72 +1705,82 @@ class FormTab(BaseTab):
     # ================== MÉTODO NUEVO: actualizar cupo ==================
     def _actualizar_cupo_disponible(self):
         """
-        Actualiza el label de cupo disponible contando inscripciones según 
-        materia/profesor/comisión seleccionados.
-        NO sincroniza aquí (se usa el cache de cupos.py para optimizar).
+        Actualiza la etiqueta de cupo según:
+          - info detallada por materia/profesor/comisión (instruments.json -> get_info_completa)
+          - fallback a cupos.yaml usando calcular_cupos_restantes()
         """
         try:
-            # 1. NO sincronizar aquí - se usa el cache de calcular_cupos_restantes
-            # que sincroniza solo cada 5 minutos para evitar lentitud
-            
-            # 2. Obtener valores seleccionados
             materia = (self.materia_var.get() if hasattr(self, "materia_var") else "") or ""
             profesor = (self.profesor_var.get() if hasattr(self, "profesor_var") else "") or ""
             comision = (self.comision_var.get() if hasattr(self, "comision_var") else "") or ""
-            
-            if not materia:
-                self.cupo_label.config(text="Seleccione una materia", foreground="gray")
-                return
-            
-            # 3. Obtener cupo total desde instruments.json
-            from models.materias import get_info_completa
-            info = get_info_completa(materia, profesor, comision)
-            
-            cupo_total = None
-            if info and "cupo" in info:
-                try:
-                    cupo_total = int(info["cupo"])
-                except (ValueError, TypeError):
-                    pass
-            
-            # Si no hay cupo definido, indicarlo
-            if cupo_total is None or cupo_total <= 0:
-                self.cupo_label.config(text="Sin cupo definido", foreground="gray")
-                return
-            
-            # 4. Contar inscripciones actuales (sin force_sync ya que sincronizamos arriba)
-            from database.csv_handler import contar_inscripciones_materia
-            inscritos = contar_inscripciones_materia(
-                materia, 
-                profesor if profesor else None,
-                comision if comision else None,
-                excluir_lista_espera=True,
-                force_sync=False
-            )
-            
-            print(f"[DEBUG CUPOS] Materia: {materia} | Profesor: {profesor} | Comisión: {comision}")
-            print(f"[DEBUG CUPOS] Cupo total: {cupo_total} | Inscritos: {inscritos}")
-            
-            # 5. Calcular disponibles
-            disponibles = max(0, cupo_total - inscritos)
-            
-            # 6. Actualizar label con color según disponibilidad
-            texto = f"Disponibles: {disponibles}/{cupo_total}"
-            
-            if disponibles == 0:
-                color = "red"
-            elif disponibles <= 2:
-                color = "orange"
-            else:
-                color = "green"
-            
-            self.cupo_label.config(text=texto, foreground=color)
-            
-        except Exception as e:
-            print(f"[ERROR] _actualizar_cupo_disponible: {e}")
-            import traceback
-            traceback.print_exc()
+        except Exception:
+            materia = profesor = comision = ""
+
+        # Si no hay materia seleccionada -> indicar sin cupo definido
+        if not materia:
             try:
-                self.cupo_label.config(text="Error al obtener cupo", foreground="red")
+                self.cupo_label.config(text="Sin cupo definido", foreground="green")
             except Exception:
                 pass
+            return
+
+        cupo_val = None
+        inscritos = 0
+
+        # 1) intentar obtener info completa desde models.materias (más granular)
+        try:
+            info = get_info_completa(materia, profesor, comision)
+            if info and ("cupo" in info and info.get("cupo") is not None):
+                try:
+                    cupo_val = int(info.get("cupo"))
+                except Exception:
+                    cupo_val = None
+        except Exception:
+            info = None
+
+        # 2) contar inscritos (intentar filtrar por materia/profesor/comision si estan)
+        try:
+            inscritos = contar_inscripciones_materia(materia, profesor if profesor else None, comision if comision else None)
+        except Exception:
+            inscritos = 0
+
+        restante = None if cupo_val is None else max(0, cupo_val - inscritos)
+
+        # 3) Si no hay cupo detalle, intentar fallback a cupos.yaml mediante helper cupos.py
+        if cupo_val is None:
+            try:
+                # importar helper de cupos desde services o root
+                try:
+                    from services.cupos import calcular_cupos_restantes
+                except Exception:
+                    from cupos import calcular_cupos_restantes
+                ok, data = calcular_cupos_restantes()
+                if ok and isinstance(data, dict) and materia in data:
+                    entry = data.get(materia, {})
+                    # entry puede ser dict con 'cupo' o valor simple
+                    v = entry.get("cupo") if isinstance(entry, dict) and entry.get("cupo") is not None else entry if not isinstance(entry, dict) else None
+                    if v is not None:
+                        try:
+                            cupo_val = int(v)
+                            restante = max(0, cupo_val - inscritos)
+                        except Exception:
+                            cupo_val = None
+                else:
+                    cupo_val = None
+            except Exception:
+                cupo_val = None
+
+        # 4) Actualizar label según lo obtenido
+        try:
+            if cupo_val is None:
+                # cupo no definido
+                self.cupo_label.config(text="Cupo no definido (libre)", foreground="orange")
+            else:
+                if restante <= 0:
+                    self.cupo_label.config(text=f"Cupo agotado (0/{cupo_val})", foreground="red")
+                else:
+                    self.cupo_label.config(text=f"Disponibles: {restante} / {cupo_val}", foreground="green")
+        except Exception:
+            pass
+
+        return cupo_val, inscritos, restante
