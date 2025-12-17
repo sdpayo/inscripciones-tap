@@ -80,6 +80,7 @@ def calcular_cupos_restantes() -> Tuple[bool, Any]:
         # 1. SINCRONIZAR DESDE GOOGLE SHEETS SOLO SI PASÓ EL INTERVALO
         now = time.time()
         if _last_sync_time is None or (now - _last_sync_time) > SYNC_INTERVAL_SECONDS:
+            sync_attempted = False
             try:
                 from database.google_sheets import sincronizar_bidireccional
                 from config.settings import settings
@@ -91,14 +92,24 @@ def calcular_cupos_restantes() -> Tuple[bool, Any]:
                     
                     if sheet_id:
                         print(f"[DEBUG] Sincronizando desde Google Sheets (última sync: {int(now - (_last_sync_time or now))}s atrás)...")
+                        sync_attempted = True
                         ok, msg = sincronizar_bidireccional(sheet_id)
                         if ok:
                             print("[DEBUG] Sincronización exitosa")
-                            _last_sync_time = now
                         else:
                             print(f"[WARNING] No se pudo sincronizar: {msg}")
+                        # Actualizar timestamp incluso si falló, para evitar reintentos constantes
+                        _last_sync_time = now
+                    else:
+                        print("[DEBUG] Google Sheets habilitado pero no hay sheet_id configurado")
+                else:
+                    print("[DEBUG] Google Sheets deshabilitado, saltando sincronización")
             except Exception as e:
                 print(f"[WARNING] Error en sync previo a contar cupos: {e}")
+            
+            # Si no se intentó sincronizar (sheets deshabilitado), actualizar timestamp igualmente
+            if not sync_attempted:
+                _last_sync_time = now
         else:
             elapsed = int(now - _last_sync_time)
             print(f"[DEBUG] Usando cache de sincronización (última sync: {elapsed}s atrás, próxima en {SYNC_INTERVAL_SECONDS - elapsed}s)")
