@@ -1277,21 +1277,21 @@ class FormTab(BaseTab):
 
         try:
             self._limpiar()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[WARN] _guardar: Error al limpiar formulario: {e}")
         try:
             self.refresh()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[WARN] _guardar: Error al refrescar tabla: {e}")
         try:
             # Actualizar cupo disponible después de guardar
             self._actualizar_cupo_disponible()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[WARN] _guardar: Error al actualizar cupo: {e}")
         try:
             self.app.refresh_all()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[WARN] _guardar: Error al refrescar aplicación: {e}")
             
     def _limpiar(self):
         """Limpia todos los campos del formulario de forma robusta."""
