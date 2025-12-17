@@ -67,30 +67,9 @@ def get_cupos() -> Tuple[bool, Any]:
 
 def calcular_cupos_restantes() -> Tuple[bool, Any]:
     """
-    Calcula cupos restantes.
-    SINCRONIZA desde Google Sheets ANTES de contar (respetando cache de 60 segundos).
+    Calcula cupos restantes desde el CSV local.
     """
     try:
-        # Sincronizar desde Google Sheets antes de contar (con cache)
-        if settings.get("google_sheets.enabled", False):
-            sheet_id = settings.get("google_sheets.spreadsheet_id") or settings.get("google_sheets.sheet_key")
-            if sheet_id:
-                try:
-                    # Importar sincronizar_bidireccional
-                    try:
-                        from services.google_sheets import sincronizar_bidireccional
-                    except ImportError:
-                        from database.google_sheets import sincronizar_bidireccional
-                    
-                    ok_sync, msg_sync = sincronizar_bidireccional(sheet_id)
-                    if not ok_sync:
-                        print(f"[WARNING] calcular_cupos_restantes: Sync falló: {msg_sync}")
-                    else:
-                        print(f"[DEBUG] calcular_cupos_restantes: {msg_sync}")
-                except Exception as e:
-                    print(f"[WARNING] calcular_cupos_restantes: Error al sincronizar: {e}")
-        
-        # Ahora contar desde CSV actualizado
         ok, cupos = get_cupos()
         if not ok:
             cupos = {}
