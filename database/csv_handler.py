@@ -216,41 +216,48 @@ def sync_before_count():
 
 
 def contar_inscripciones_materia(materia: str, profesor: Optional[str] = None,
-                                 comision: Optional[str] = None) -> int:
+                                 comision: Optional[str] = None, excluir_lista_espera: bool = True) -> int:
     """
-    Cuenta inscripciones para una materia específica.
-    SINCRONIZA DESDE GOOGLE SHEETS PRIMERO.
-    """
-    # SINCRONIZAR ANTES DE CONTAR
-    sync_before_count()
+    Cuenta inscripciones filtrando por materia, opcionalmente por profesor y comisión.
     
+    Args:
+        materia: nombre de la materia (requerido)
+        profesor: nombre del profesor (opcional)
+        comision: nombre/código de la comisión (opcional)
+        excluir_lista_espera: si True, no cuenta registros en lista de espera
+    
+    Returns:
+        int: cantidad de inscripciones que cumplen los filtros
+    """
     registros = cargar_registros()
     count = 0
     
     for r in registros:
-        # Filtrar por materia primero (más selectivo)
-        mat_reg = str(r.get("materia", "") or "").strip()
-        if mat_reg != materia:
+        # Excluir lista de espera si corresponde
+        if excluir_lista_espera:
+            en_espera = str(r.get("en_lista_espera", "No")).strip().lower()
+            if en_espera in ("sí", "si", "yes", "true", "1"):
+                continue
+        
+        # Filtrar por materia (requerido)
+        mat = str(r.get("materia", "") or "").strip()
+        if mat != materia:
             continue
-            
+        
         # Filtrar por profesor si se especifica
         if profesor:
-            prof_reg = str(r.get("profesor", "") or "").strip()
-            if prof_reg != profesor:
+            prof = str(r.get("profesor", "") or "").strip()
+            if prof != profesor:
                 continue
-                
-        # Filtrar por comisión si se especifica  
+        
+        # Filtrar por comisión si se especifica
         if comision:
-            com_reg = str(r.get("comision", "") or "").strip()
-            if com_reg != comision:
+            com = str(r.get("comision", "") or "").strip()
+            if com != comision:
                 continue
         
-        # Ignorar lista de espera (después de otros filtros)
-        if str(r.get("en_lista_espera", "No")).strip().lower() in ("sí", "si", "yes", "true"):
-            continue
-                
         count += 1
-        
+    
     return count
 
 
