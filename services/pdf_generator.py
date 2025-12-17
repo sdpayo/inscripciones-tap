@@ -7,6 +7,25 @@ from pathlib import Path
 from datetime import datetime
 from config.settings import settings, CERTIFICATES_DIR, BASE_DIR
 
+def _get_unique_pdf_path(base_path):
+    """Genera un path único para PDF agregando número si ya existe."""
+    path = Path(base_path)
+    if not path.exists():
+        return path
+    
+    # Si existe, agregar número
+    stem = path.stem
+    ext = path.suffix
+    parent = path.parent
+    counter = 1
+    
+    while True:
+        new_path = parent / f"{stem}_{counter}{ext}"
+        if not new_path.exists():
+            return new_path
+        counter += 1
+
+
 def generar_certificado_pdf(registro, output_path=None):
     """
     Genera certificado de inscripción en PDF con logo y firma.
@@ -29,7 +48,8 @@ def generar_certificado_pdf(registro, output_path=None):
             fecha = datetime.now().strftime("%Y%m%d")
             
             CERTIFICATES_DIR.mkdir(parents=True, exist_ok=True)
-            output_path = CERTIFICATES_DIR / f"certificado_{apellido}_{nombre}_{legajo}_{fecha}.pdf"
+            base_path = CERTIFICATES_DIR / f"certificado_{apellido}_{nombre}_{legajo}_{fecha}.pdf"
+            output_path = _get_unique_pdf_path(base_path)
         
         # Crear PDF
         c = canvas.Canvas(str(output_path), pagesize=A4)
@@ -107,8 +127,10 @@ def generar_certificado_pdf(registro, output_path=None):
         
         c.setFont("Helvetica", 10)
         
-        # Nombre completo
-        nombre_completo = f"{registro.get('nombre', '')} {registro.get('apellido', '')}"
+        # Nombre completo - Formato especial: "APELLIDO, Nombre"
+        apellido_upper = registro.get('apellido', '').upper()
+        nombre_normal = registro.get('nombre', '').title()
+        nombre_completo = f"{apellido_upper}, {nombre_normal}"
         c.drawString(margin_left, y, f"Nombre y Apellido: {nombre_completo}")
         y -= 15
         
@@ -117,9 +139,10 @@ def generar_certificado_pdf(registro, output_path=None):
         c.drawString(margin_left, y, f"DNI: {dni}")
         y -= 15
         
-        # Legajo (si no se mostró arriba)
-        if legajo_display:
-            c.drawString(margin_left, y, f"Legajo: {legajo_display}")
+        # Fecha de nacimiento
+        fecha_nac = registro.get("fecha_nacimiento", "")
+        if fecha_nac:
+            c.drawString(margin_left, y, f"Fecha de Nacimiento: {fecha_nac}")
             y -= 15
         
         # Edad
@@ -128,16 +151,54 @@ def generar_certificado_pdf(registro, output_path=None):
             c.drawString(margin_left, y, f"Edad: {edad}")
             y -= 15
         
+        # Legajo
+        if legajo_display:
+            c.drawString(margin_left, y, f"Legajo: {legajo_display}")
+            y -= 15
+        
         # Domicilio
         domicilio = registro.get("direccion", "") or registro.get("domicilio", "")
         if domicilio:
             c.drawString(margin_left, y, f"Domicilio: {domicilio}")
             y -= 15
         
+        # Teléfono
+        telefono = registro.get("telefono", "")
+        if telefono:
+            c.drawString(margin_left, y, f"Teléfono: {telefono}")
+            y -= 15
+        
         # Mail
         mail = registro.get("email", "") or registro.get("mail", "")
         if mail:
             c.drawString(margin_left, y, f"Mail: {mail}")
+            y -= 15
+        
+        y -= 10
+        
+        # === DATOS DE PADRES/TUTORES ===
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(margin_left, y, "Datos de Padres/Tutores:")
+        y -= 20
+        
+        c.setFont("Helvetica", 10)
+        
+        # Nombre del padre
+        nombre_padre = registro.get("nombre_padre", "")
+        if nombre_padre:
+            c.drawString(margin_left, y, f"Nombre del Padre: {nombre_padre}")
+            y -= 15
+        
+        # Nombre de la madre
+        nombre_madre = registro.get("nombre_madre", "")
+        if nombre_madre:
+            c.drawString(margin_left, y, f"Nombre de la Madre: {nombre_madre}")
+            y -= 15
+        
+        # Teléfono de emergencia
+        telefono_emerg = registro.get("telefono_emergencia", "")
+        if telefono_emerg:
+            c.drawString(margin_left, y, f"Teléfono de Emergencia: {telefono_emerg}")
             y -= 15
         
         y -= 10
@@ -149,14 +210,15 @@ def generar_certificado_pdf(registro, output_path=None):
         
         c.setFont("Helvetica", 10)
         
+        # Año
+        anio = registro.get("anio", "") or registro.get("año", "")
+        if anio:
+            c.drawString(margin_left, y, f"Año: {anio}°")
+            y -= 15
+        
         # Turno
         turno = registro.get("turno", "N/A")
         c.drawString(margin_left, y, f"Turno: {turno}")
-        y -= 15
-        
-        # Año
-        anio = registro.get("anio", "") or registro.get("año", "")
-        c.drawString(margin_left, y, f"Año: {anio}°")
         y -= 15
         
         # Materia
@@ -187,30 +249,46 @@ def generar_certificado_pdf(registro, output_path=None):
             c.drawString(margin_left, y, f"Horario: {horario}")
             y -= 15
         
+        # En lista de espera
+        en_lista_espera = registro.get("en_lista_espera", "No")
+        if en_lista_espera and en_lista_espera.lower() in ("sí", "si", "yes", "s", "1", "true"):
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(margin_left, y, "⚠ EN LISTA DE ESPERA")
+            c.setFont("Helvetica", 10)
+            y -= 15
+        
         y -= 10
         
         # === INFORMACIÓN ADICIONAL ===
-        # Seguro escolar
-        seguro = registro.get("seguro_escolar", "No")
-        if seguro and seguro.lower() in ("sí", "si", "yes", "s", "1", "true"):
-            c.setFont("Helvetica-Bold", 10)
-            c.drawString(margin_left, y, "✓ Seguro escolar contratado")
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(margin_left, y, "Información Adicional:")
+        y -= 20
+        
+        c.setFont("Helvetica", 10)
+        
+        # SAETA
+        saeta = registro.get("saeta", "")
+        if saeta:
+            c.drawString(margin_left, y, f"SAETA: {saeta}")
             y -= 15
-            c.setFont("Helvetica", 10)
         
         # Obra social
         obra_social = registro.get("obra_social", "")
         if obra_social:
-            c.drawString(margin_left, y, f"Obra social: {obra_social}")
+            c.drawString(margin_left, y, f"Obra Social: {obra_social}")
+            y -= 15
+        
+        # Seguro escolar
+        seguro = registro.get("seguro_escolar", "No")
+        if seguro:
+            c.drawString(margin_left, y, f"Seguro Escolar: {seguro}")
             y -= 15
         
         # Pago voluntario
         pago_voluntario = registro.get("pago_voluntario", "No")
-        if pago_voluntario and pago_voluntario.lower() in ("sí", "si", "yes", "s", "1", "true"):
-            c.setFont("Helvetica-Bold", 10)
-            c.drawString(margin_left, y, "✓ Pago voluntario")
+        if pago_voluntario:
+            c.drawString(margin_left, y, f"Pago Voluntario: {pago_voluntario}")
             y -= 15
-            c.setFont("Helvetica", 10)
             
             # Mostrar monto si existe
             monto = registro.get("monto", "")
@@ -233,10 +311,37 @@ def generar_certificado_pdf(registro, output_path=None):
                     # Si no se puede convertir, usar el valor original
                     monto_formatted = f"${monto}"
                 
-                c.drawString(margin_left, y, f"Monto: {monto_formatted}")
+                c.drawString(margin_left, y, f"  Monto: {monto_formatted}")
                 y -= 15
         
-        y -= 20
+        # Permiso
+        permiso = registro.get("permiso", "")
+        if permiso:
+            c.drawString(margin_left, y, f"Permiso: {permiso}")
+            y -= 15
+        
+        # Observaciones (puede ser largo, hay que manejarlo especialmente)
+        observaciones = registro.get("observaciones", "")
+        if observaciones:
+            c.drawString(margin_left, y, f"Observaciones:")
+            y -= 15
+            # Dividir observaciones en líneas si es muy largo
+            max_chars = 80
+            obs_lines = []
+            while len(observaciones) > max_chars:
+                split_pos = observaciones[:max_chars].rfind(' ')
+                if split_pos == -1:
+                    split_pos = max_chars
+                obs_lines.append(observaciones[:split_pos])
+                observaciones = observaciones[split_pos:].strip()
+            if observaciones:
+                obs_lines.append(observaciones)
+            
+            for line in obs_lines:
+                c.drawString(margin_left + 10, y, line)
+                y -= 15
+        
+        y -= 10
         
         # === FECHAS ===
         c.setFont("Helvetica", 9)
