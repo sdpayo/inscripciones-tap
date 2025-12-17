@@ -7,6 +7,9 @@ from pathlib import Path
 from datetime import datetime
 from config.settings import settings, CERTIFICATES_DIR, BASE_DIR
 
+# Constantes
+MAX_CHARS_PER_LINE = 80  # Máximo de caracteres por línea en observaciones
+
 def _get_unique_pdf_path(base_path):
     """Genera un path único para PDF agregando número si ya existe."""
     path = Path(base_path)
@@ -129,7 +132,9 @@ def generar_certificado_pdf(registro, output_path=None):
         
         # Nombre completo - Formato especial: "APELLIDO, Nombre"
         apellido_upper = registro.get('apellido', '').upper()
-        nombre_normal = registro.get('nombre', '').title()
+        # Capitalizar cada palabra del nombre manteniendo mayúsculas iniciales
+        nombre_parts = registro.get('nombre', '').split()
+        nombre_normal = ' '.join(word.capitalize() for word in nombre_parts)
         nombre_completo = f"{apellido_upper}, {nombre_normal}"
         c.drawString(margin_left, y, f"Nombre y Apellido: {nombre_completo}")
         y -= 15
@@ -326,12 +331,11 @@ def generar_certificado_pdf(registro, output_path=None):
             c.drawString(margin_left, y, f"Observaciones:")
             y -= 15
             # Dividir observaciones en líneas si es muy largo
-            max_chars = 80
             obs_lines = []
-            while len(observaciones) > max_chars:
-                split_pos = observaciones[:max_chars].rfind(' ')
+            while len(observaciones) > MAX_CHARS_PER_LINE:
+                split_pos = observaciones[:MAX_CHARS_PER_LINE].rfind(' ')
                 if split_pos == -1:
-                    split_pos = max_chars
+                    split_pos = MAX_CHARS_PER_LINE
                 obs_lines.append(observaciones[:split_pos])
                 observaciones = observaciones[split_pos:].strip()
             if observaciones:
