@@ -188,20 +188,65 @@ def buscar_por_id(reg_id: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+def sync_before_count():
+    """
+    Helper: sincroniza desde Google Sheets si está habilitado.
+    Devuelve True si sync fue exitoso o no era necesario.
+    """
+    try:
+        from config.settings import settings
+        
+        if not settings.get("google_sheets.enabled", False):
+            return True  # No está habilitado, no es necesario
+            
+        sheet_id = settings.get("google_sheets.spreadsheet_id")
+        sheet_name = settings.get("google_sheets.sheet_name", "Inscripciones")
+        
+        if not sheet_id:
+            return True  # No hay sheet configurado
+            
+        from database.google_sheets import descargar_desde_google_sheets
+        ok, msg = descargar_desde_google_sheets(sheet_id, sheet_name)
+        return ok
+    except Exception:
+        return False
+
+
 def contar_inscripciones_materia(materia: str, profesor: Optional[str] = None,
                                  comision: Optional[str] = None) -> int:
+    """
+    Cuenta inscripciones para una materia específica.
+    SINCRONIZA DESDE GOOGLE SHEETS PRIMERO.
+    """
+    # SINCRONIZAR ANTES DE CONTAR
+    sync_before_count()
+    
     registros = cargar_registros()
     count = 0
+    
     for r in registros:
-        if r.get("materia") != materia:
+        # Ignorar lista de espera
+        if str(r.get("en_lista_espera", "No")).strip().lower() in ("sí", "si", "yes", "true"):
             continue
-        if profesor and r.get("profesor") != profesor:
+            
+        mat_reg = str(r.get("materia", "") or "").strip()
+        if mat_reg != materia:
             continue
-        if comision and r.get("comision") != comision:
-            continue
-        if r.get("en_lista_espera", "No") == "Sí":
-            continue
+            
+        # Filtrar por profesor si se especifica
+        if profesor:
+            prof_reg = str(r.get("profesor", "") or "").strip()
+            if prof_reg != profesor:
+                continue
+                
+        # Filtrar por comisión si se especifica  
+        if comision:
+            com_reg = str(r.get("comision", "") or "").strip()
+            if com_reg != comision:
+                continue
+                
         count += 1
+        
     return count
 
 

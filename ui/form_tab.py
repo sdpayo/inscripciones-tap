@@ -1708,7 +1708,15 @@ class FormTab(BaseTab):
         Actualiza la etiqueta de cupo según:
           - info detallada por materia/profesor/comisión (instruments.json -> get_info_completa)
           - fallback a cupos.yaml usando calcular_cupos_restantes()
+        SINCRONIZA DESDE GOOGLE SHEETS PRIMERO.
         """
+        # SINCRONIZAR ANTES DE CONTAR
+        try:
+            from database.csv_handler import sync_before_count
+            sync_before_count()
+        except Exception:
+            pass
+            
         try:
             materia = (self.materia_var.get() if hasattr(self, "materia_var") else "") or ""
             profesor = (self.profesor_var.get() if hasattr(self, "profesor_var") else "") or ""
