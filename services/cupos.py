@@ -91,7 +91,8 @@ def calcular_cupos_restantes() -> Tuple[bool, Any]:
                                settings.get("spreadsheet_id"))
                     
                     if sheet_id:
-                        print(f"[DEBUG] Sincronizando desde Google Sheets (última sync: {int(now - (_last_sync_time or now))}s atrás)...")
+                        last_sync_msg = f"{int(now - _last_sync_time)}s atrás" if _last_sync_time else "nunca"
+                        print(f"[DEBUG] Sincronizando desde Google Sheets (última sync: {last_sync_msg})...")
                         sync_attempted = True
                         ok, msg = sincronizar_bidireccional(sheet_id)
                         if ok:
@@ -133,7 +134,7 @@ def calcular_cupos_restantes() -> Tuple[bool, Any]:
             
         # 4. CALCULAR RESTANTES
         results = {}
-        materias_set = set([m for m,_,_ in counts.keys()]) | set((list(cupos.keys()) if isinstance(cupos, dict) else []))
+        materias_set = set([m for m, p, c in counts.keys()]) | set((list(cupos.keys()) if isinstance(cupos, dict) else []))
         for mat in materias_set:
             cupo_val = None
             if isinstance(cupos, dict) and mat in cupos:
