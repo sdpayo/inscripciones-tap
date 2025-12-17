@@ -4,6 +4,7 @@ from tkinter import ttk, messagebox, filedialog
 from datetime import datetime
 import sys
 import os
+import re
 import threading
 from ui.base_tab import BaseTab
 from database.csv_handler import (
@@ -1111,6 +1112,24 @@ class FormTab(BaseTab):
             import uuid
             nuevo_id = str(uuid.uuid4())
 
+        # Limpiar valores de anio y turno antes de guardar
+        # Extraer solo el número del año
+        año_raw = self.anio_var.get() if hasattr(self, "anio_var") else ""
+        año_limpio = ""
+        if año_raw:
+            # Si viene "Año: 1°" o "1°" -> extraer solo el "1"
+            match = re.search(r'\d+', año_raw)
+            if match:
+                año_limpio = match.group(0)  # Solo el número
+
+        # Limpiar el turno (eliminar "Año: " y "°")
+        turno_raw = self.turno_var.get() if hasattr(self, "turno_var") else ""
+        turno_limpio = turno_raw
+        if "Año:" in turno_limpio:
+            turno_limpio = ""  # Si viene con "Año:" es que está mal, vaciar
+        elif "°" in turno_limpio:
+            turno_limpio = turno_limpio.replace("°", "").strip()
+
         # Construir registro
         registro = {
             "id": str(nuevo_id),
@@ -1133,8 +1152,8 @@ class FormTab(BaseTab):
             "pago_voluntario": (self.pago_voluntario_var.get() if hasattr(self, "pago_voluntario_var") else "No"),
             "monto": (self.entries.get("monto") and self.entries["monto"].get().strip()) or "",
             "permiso": (self.permiso_var.get() if hasattr(self, "permiso_var") else "No"),
-            "anio": (self.anio_var.get() if hasattr(self, "anio_var") else ""),
-            "turno": (self.turno_var.get() if hasattr(self, "turno_var") else ""),
+            "anio": año_limpio,
+            "turno": turno_limpio,
             "materia": (self.materia_var.get() if hasattr(self, "materia_var") else ""),
             "profesor": (self.profesor_var.get() if hasattr(self, "profesor_var") else ""),
             "comision": (self.comision_var.get() if hasattr(self, "comision_var") else ""),
