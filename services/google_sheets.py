@@ -332,21 +332,13 @@ def sync_in_background(registro: Dict[str, Any], operation: str = "insert", shee
 
 def sincronizar_bidireccional(sheet_id: str, sheet_name: Optional[str] = None) -> Tuple[bool, str]:
     """
-    Sincronización bidireccional con Google Sheets con cache integrado.
-    1. Verifica si es necesario sincronizar (cache)
-    2. Descarga TODOS los registros desde Google Sheets (rango abierto)
-    3. Guarda en CSV local
-    4. Sube cambios locales a Google Sheets
+    Sincronización bidireccional con Google Sheets.
+    1. Descarga TODOS los registros desde Google Sheets (rango abierto)
+    2. Guarda en CSV local
+    3. Sube cambios locales a Google Sheets
     Devuelve (ok, mensaje).
     """
     try:
-        from services.sync_cache import should_sync, mark_synced
-        
-        # Solo sincronizar si pasó el tiempo de cache
-        if not should_sync():
-            print("[DEBUG] sincronizar_bidireccional: Usando cache de sincronización")
-            return True, "Cache activo - no es necesario sincronizar"
-        
         print("[DEBUG] sincronizar_bidireccional: Sincronizando desde Google Sheets...")
         
         # 1. Descargar desde Sheets con rango abierto
@@ -369,9 +361,6 @@ def sincronizar_bidireccional(sheet_id: str, sheet_name: Optional[str] = None) -
         if not ok_upload:
             print(f"[WARN] sincronizar_bidireccional: Error subiendo a Sheets: {msg_upload}")
             # No es crítico, ya tenemos los datos locales actualizados
-        
-        # Marcar que se sincronizó
-        mark_synced()
         
         return True, f"Sincronizado correctamente: {len(registros_locales)} registros"
     except Exception as e:

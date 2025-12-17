@@ -1213,14 +1213,6 @@ class FormTab(BaseTab):
 
         print("[DEBUG] _guardar: guardado local ok:", ok_local, "msg:", msg_local, "id:", registro.get("id"))
 
-        # Forzar sincronización después de guardar (resetea cache)
-        try:
-            from services.sync_cache import force_sync
-            force_sync()
-            print("[DEBUG] _guardar: Cache de sincronización reseteado")
-        except Exception as e:
-            print(f"[WARN] _guardar: No se pudo forzar sync: {e}")
-
         # Preparar sheet_key
         try:
             sheet_key = settings.get("google_sheets.sheet_key", "") or settings.get("spreadsheet_id", "")
