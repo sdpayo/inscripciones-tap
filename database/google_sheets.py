@@ -21,6 +21,16 @@ from database.csv_handler import cargar_registros
 from config.settings import settings
 
 
+def _resolve_sheet_key(sheet_key: Optional[str] = None) -> Optional[str]:
+    """
+    Helper function to resolve sheet_key from settings if not provided.
+    Returns sheet_key or None.
+    """
+    if sheet_key:
+        return sheet_key
+    return settings.get("google_sheets.sheet_key", "") or settings.get("spreadsheet_id", "") or None
+
+
 def _require_mod():
     if _mod is None:
         return False, "No hay implementación de Google Sheets disponible (services/google_sheets.py ni google_sheets.py)"
@@ -136,17 +146,42 @@ def sync_from_google_sheets(sheet_key: str) -> Tuple[bool, str]:
 
 
 def sincronizar_bidireccional(sheet_key: Optional[str] = None) -> Tuple[bool, str]:
+    """
+    Wrapper para sincronización bidireccional.
+    Delega a services.google_sheets.sincronizar_bidireccional si existe.
+    """
     ok, msg = _require_mod()
     if not ok:
         return False, msg
     try:
+        # Resolver sheet_key usando helper
+        sheet_key = _resolve_sheet_key(sheet_key)
+        if not sheet_key:
+            return False, "No sheet_key configurado"
+        
+        # Usar la implementación del módulo si existe
         if hasattr(_mod, "sincronizar_bidireccional"):
             return _mod.sincronizar_bidireccional(sheet_key)
-        # fallback: upload local CSV to sheet
+        
+        # Fallback: hacer sync manual (download + save + upload)
+        # 1. Descargar
+        ok_down, result = descargar_desde_google_sheets(sheet_key)
+        if not ok_down:
+            return False, f"Error descargando: {result}"
+        
+        registros_remotos = result or []
+        
+        # 2. Guardar localmente
+        from database.csv_handler import guardar_todos_registros
+        ok_save, msg_save = guardar_todos_registros(registros_remotos)
+        if not ok_save:
+            return False, f"Error guardando CSV: {msg_save}"
+        
+        # 3. Subir desde local (para asegurar consistencia)
         registros = cargar_registros()
-        if not sheet_key:
-            sheet_key = settings.get("google_sheets.sheet_key", "") or settings.get("spreadsheet_id", "")
-        return subir_a_google_sheets(registros, sheet_key)
+        ok_up, msg_up = subir_a_google_sheets(registros, sheet_key)
+        
+        return True, f"Sincronizado: {len(registros)} registros"
     except Exception as e:
         return False, str(e)
 
@@ -160,8 +195,8 @@ def test_google_sheets_connection(sheet_key: Optional[str] = None) -> Tuple[bool
             service, err = _mod.get_sheets_service()
             if err:
                 return False, err
-            if not sheet_key:
-                sheet_key = settings.get("google_sheets.sheet_key", "") or settings.get("spreadsheet_id", "")
+            # Resolve sheet_key using helper
+            sheet_key = _resolve_sheet_key(sheet_key)
             if sheet_key:
                 try:
                     resp = service.spreadsheets().get(spreadsheetId=sheet_key, fields="properties(title)").execute()
