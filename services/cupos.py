@@ -77,7 +77,8 @@ def calcular_cupos_restantes() -> Tuple[bool, Any]:
             from config.settings import settings
             
             if settings.get("google_sheets.enabled", False):
-                sheet_id = settings.get("google_sheets.spreadsheet_id")
+                # Try multiple possible keys for sheet ID (for compatibility)
+                sheet_id = settings.get("google_sheets.spreadsheet_id") or settings.get("google_sheets.sheet_key") or settings.get("spreadsheet_id")
                 
                 if sheet_id:
                     print("[DEBUG] Sincronizando desde Google Sheets antes de contar cupos...")

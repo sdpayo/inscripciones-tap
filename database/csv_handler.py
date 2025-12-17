@@ -199,7 +199,8 @@ def sync_before_count():
         if not settings.get("google_sheets.enabled", False):
             return True  # No está habilitado, no es necesario
             
-        sheet_id = settings.get("google_sheets.spreadsheet_id")
+        # Try multiple possible keys for sheet ID (for compatibility)
+        sheet_id = settings.get("google_sheets.spreadsheet_id") or settings.get("google_sheets.sheet_key") or settings.get("spreadsheet_id")
         
         if not sheet_id:
             return True  # No hay sheet configurado
@@ -224,10 +225,7 @@ def contar_inscripciones_materia(materia: str, profesor: Optional[str] = None,
     count = 0
     
     for r in registros:
-        # Ignorar lista de espera
-        if str(r.get("en_lista_espera", "No")).strip().lower() in ("sí", "si", "yes", "true"):
-            continue
-            
+        # Filtrar por materia primero (más selectivo)
         mat_reg = str(r.get("materia", "") or "").strip()
         if mat_reg != materia:
             continue
@@ -243,6 +241,10 @@ def contar_inscripciones_materia(materia: str, profesor: Optional[str] = None,
             com_reg = str(r.get("comision", "") or "").strip()
             if com_reg != comision:
                 continue
+        
+        # Ignorar lista de espera (después de otros filtros)
+        if str(r.get("en_lista_espera", "No")).strip().lower() in ("sí", "si", "yes", "true"):
+            continue
                 
         count += 1
         

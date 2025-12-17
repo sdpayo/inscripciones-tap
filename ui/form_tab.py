@@ -1710,10 +1710,17 @@ class FormTab(BaseTab):
           - fallback a cupos.yaml usando calcular_cupos_restantes()
         SINCRONIZA DESDE GOOGLE SHEETS PRIMERO.
         """
-        # SINCRONIZAR ANTES DE CONTAR
+        # SINCRONIZAR ANTES DE CONTAR (con throttling para evitar syncs excesivos)
         try:
+            import time
             from database.csv_handler import sync_before_count
-            sync_before_count()
+            
+            # Solo sincronizar si han pasado al menos 5 segundos desde la última sync
+            now = time.time()
+            last_sync = getattr(self, '_last_sync_time', 0)
+            if now - last_sync >= 5:
+                sync_before_count()
+                self._last_sync_time = now
         except Exception:
             pass
             
