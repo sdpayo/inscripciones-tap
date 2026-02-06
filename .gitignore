@@ -1,7 +1,119 @@
-google_service_account.json
+# ====================================
+# CREDENCIALES Y CONFIGURACIÓN SENSIBLE
+# ====================================
 credentials.json
-*.json 
-__pycache__/ 
-*.pyc 
-.env 
+google_service_account.json
+smtp_config.json
+data/config.json
+
+# ====================================
+# DATOS DE USUARIOS (CSV)
+# ====================================
+# Archivos CSV con datos reales de inscripciones
+inscripciones.csv
+data/inscripciones.csv
+data/inscripciones_backup.csv
+data/inscripciones_sheets.csv
+data/inscripciones_sheets_timestamp.txt
+InscripcionesTAP*.csv
+*inscripciones*.csv
+
+# ====================================
+# ARCHIVOS GENERADOS
+# ====================================
+# Certificados PDF generados
+data/certificates/
 data/certificates/*.pdf
+
+# Logs de la aplicación
+data/logs/
+data/logs/*.log
+data/logs/*.txt
+
+# Reportes generados
+data/reports/
+data/reports/*.pdf
+data/reports/*.csv
+data/reports/*.xlsx
+
+# ====================================
+# PYTHON
+# ====================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*/__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ====================================
+# IDE / EDITOR
+# ====================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ====================================
+# ARCHIVOS TEMPORALES / DE TESTING
+# ====================================
+test_sync.py
+test_*.py
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# ====================================
+# ARCHIVOS DE DESARROLLO
+# ====================================
+FINAL_SUMMARY.txt
+inscripcion_original.py
+config_tab.py
+
+# ====================================
+# IMÁGENES LOCALES (opcional)
+# ====================================
+# Descomentar si no quieres subir imágenes locales
+# ESM_Alta.jpg
+# firma.png
+
+# ====================================
+# OTROS
+# ====================================
+.env
+*.log
+

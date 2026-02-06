@@ -75,6 +75,7 @@ class InscripcionApp:
         """
         Al iniciar la app: descarga la planilla y sincroniza el CSV local.
         Si hay cambios, actualiza la UI (refresh) y muestra un resumen (added/updated/removed).
+        Si falla, intenta cargar respaldo local.
         """
         try:
             # comprobar si está habilitado en settings
@@ -89,10 +90,43 @@ class InscripcionApp:
                 return
 
             print("[STARTUP SYNC] Iniciando sincronización remota -> local desde planilla...")
-            from services.google_sheets import sync_remote_to_local
+            from services.google_sheets import sync_remote_to_local, load_local_backup
             ok, result = sync_remote_to_local(sheet_key)
+            
             if not ok:
                 print("[STARTUP SYNC] Falló la sincronización inicial:", result)
+                
+                # INTENTAR CARGAR RESPALDO LOCAL
+                print("[STARTUP SYNC] Intentando cargar respaldo local...")
+                ok_backup, backup_result = load_local_backup()
+                if ok_backup:
+                    registros_backup = backup_result
+                    from database.csv_handler import guardar_todos_registros
+                    ok_save, msg_save = guardar_todos_registros(registros_backup)
+                    if ok_save:
+                        print(f"[STARTUP SYNC] ✓ Respaldo local cargado exitosamente ({len(registros_backup)} registros)")
+                        if show_popup:
+                            try:
+                                self.show_warning(
+                                    "Sincronización con Sheets falló",
+                                    f"No se pudo conectar con Google Sheets.\n\n" +
+                                    f"Se cargó el último respaldo local:\n" +
+                                    f"• {len(registros_backup)} registros\n\n" +
+                                    f"Error original: {result}"
+                                )
+                            except Exception:
+                                pass
+                        # Refresh UI con datos del respaldo
+                        try:
+                            if hasattr(self, "form_tab") and self.form_tab:
+                                self.form_tab.refresh()
+                            self.refresh_all()
+                        except Exception:
+                            pass
+                        return
+                else:
+                    print(f"[STARTUP SYNC] No se pudo cargar respaldo local: {backup_result}")
+                
                 if show_popup:
                     try:
                         self.show_warning("Sincronización inicial", f"No se pudo sincronizar desde Google Sheets: {result}")
@@ -112,15 +146,25 @@ class InscripcionApp:
                 # refresh main form tab and other tabs if needed
                 if hasattr(self, "form_tab") and self.form_tab:
                     try:
+                        print("[STARTUP SYNC] Refrescando form_tab...")
                         self.form_tab.refresh()
-                    except Exception:
-                        pass
+                        print("[STARTUP SYNC] form_tab refrescado exitosamente")
+                    except Exception as e_form:
+                        print(f"[STARTUP SYNC] Error refrescando form_tab: {e_form}")
+                        import traceback
+                        traceback.print_exc()
                 try:
+                    print("[STARTUP SYNC] Refrescando todas las tabs...")
                     self.refresh_all()
-                except Exception:
-                    pass
-            except Exception:
-                pass
+                    print("[STARTUP SYNC] Todas las tabs refrescadas exitosamente")
+                except Exception as e_all:
+                    print(f"[STARTUP SYNC] Error refrescando tabs: {e_all}")
+                    import traceback
+                    traceback.print_exc()
+            except Exception as e_outer:
+                print(f"[STARTUP SYNC] Error general en refresh: {e_outer}")
+                import traceback
+                traceback.print_exc()
 
             msg = f"Sincronización inicial completada.\nAñadidos: {added}\nActualizados: {updated}\nEliminados: {removed}\nIgnorados: {skipped}\nTotal local: {total_after}"
             print("[STARTUP SYNC] " + msg.replace("\n", " | "))
@@ -164,11 +208,21 @@ class InscripcionApp:
 
     def refresh_all(self):
         """Refresca todas las pestañas."""
-        for tab in [self.form_tab, self.listados_tab, self.historial_tab, self.config_tab]:
+        print("[APP] Refrescando todas las pestañas...")
+        for tab_name, tab in [("form_tab", self.form_tab), ("listados_tab", self.listados_tab), 
+                              ("historial_tab", self.historial_tab), ("config_tab", self.config_tab)]:
             try:
-                tab.refresh()
+                if hasattr(tab, 'refresh'):
+                    print(f"[APP] Refrescando {tab_name}...")
+                    tab.refresh()
+                    print(f"[APP] {tab_name} refrescado exitosamente")
+                else:
+                    print(f"[APP] {tab_name} no tiene método refresh, saltando")
             except Exception as e:
-                print(f"[WARN] No se pudo refrescar tab: {e}")
+                print(f"[WARN] No se pudo refrescar {tab_name}: {e}")
+                import traceback
+                traceback.print_exc()
+        print("[APP] Refresh de todas las pestañas completado")
 
     def update_status(self, mensaje):
         """Actualiza mensaje de estado."""

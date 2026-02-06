@@ -37,6 +37,7 @@ def _guardar_backup_csv(registros: List[Dict[str, Any]]) -> Tuple[bool, str]:
 def cargar_registros() -> List[Dict[str, Any]]:
     """Carga todos los registros desde CSV_FILE. Devuelve lista vacía si no existe."""
     if not CSV_FILE.exists():
+        print(f"[CSV_HANDLER] Archivo {CSV_FILE} no existe, retornando lista vacía")
         return []
 
     registros: List[Dict[str, Any]] = []
@@ -46,8 +47,11 @@ def cargar_registros() -> List[Dict[str, Any]]:
             for row in reader:
                 # Normalizar keys (en caso de headers inesperados)
                 registros.append(dict(row))
+        print(f"[CSV_HANDLER] Cargados {len(registros)} registros desde {CSV_FILE}")
     except Exception as e:
         print(f"[ERROR] cargar_registros: no se pudo leer {CSV_FILE}: {e}")
+        import traceback
+        traceback.print_exc()
     return registros
 
 
@@ -67,6 +71,9 @@ def guardar_todos_registros(registros: List[Dict[str, Any]], csv_path: Optional[
             if not fieldnames and registros:
                 fieldnames = list(registros[0].keys())
 
+        print(f"[CSV_HANDLER] Guardando {len(registros)} registros en {csv_path}")
+        print(f"[CSV_HANDLER] Campos: {fieldnames}")
+        
         # Asegurar directorio
         dirn = os.path.dirname(csv_path) or "."
         os.makedirs(dirn, exist_ok=True)
@@ -83,6 +90,7 @@ def guardar_todos_registros(registros: List[Dict[str, Any]], csv_path: Optional[
                     row = {k: ("" if r.get(k) is None else r.get(k)) for k in fieldnames}
                     writer.writerow(row)
             shutil.move(tmp_path, csv_path)
+            print(f"[CSV_HANDLER] Guardado exitoso: {csv_path}")
         finally:
             # cleanup si queda tmp
             try:

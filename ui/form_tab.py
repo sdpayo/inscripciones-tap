@@ -835,31 +835,57 @@ class FormTab(BaseTab):
 
     def refresh(self):
         """Refresca la tabla con los registros guardados."""
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-
-        registros = cargar_registros()
-        self.id_map = {}
-        for idx, reg in enumerate(registros):
-            tag = "evenrow" if idx % 2 == 0 else "oddrow"
-            id_display = str(reg.get("id", ""))[:8]
-            item_id = self.tree.insert("", tk.END, values=(
-                id_display,
-                reg.get("nombre", ""),
-                reg.get("apellido", ""),
-                reg.get("dni", ""),
-                reg.get("materia", ""),
-                reg.get("profesor", ""),
-                reg.get("turno", ""),
-                reg.get("anio", "")
-            ), tags=(tag,))
-            self.id_map[item_id] = str(reg.get("id", ""))
-
-        # actualizar cupo al refrescar lista
         try:
-            self._actualizar_cupo_disponible()
-        except Exception:
-            pass
+            print("[FORM_TAB] Iniciando refresh...")
+            # Limpiar tree
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+
+            # Cargar registros
+            registros = cargar_registros()
+            print(f"[FORM_TAB] Cargados {len(registros)} registros del CSV")
+            
+            # Reinicializar id_map
+            self.id_map = {}
+            
+            # Insertar en tree
+            for idx, reg in enumerate(registros):
+                tag = "evenrow" if idx % 2 == 0 else "oddrow"
+                id_display = str(reg.get("id", ""))[:8]
+                item_id = self.tree.insert("", tk.END, values=(
+                    id_display,
+                    reg.get("nombre", ""),
+                    reg.get("apellido", ""),
+                    reg.get("dni", ""),
+                    reg.get("materia", ""),
+                    reg.get("profesor", ""),
+                    reg.get("turno", ""),
+                    reg.get("anio", "")
+                ), tags=(tag,))
+                self.id_map[item_id] = str(reg.get("id", ""))
+            
+            print(f"[FORM_TAB] Insertados {len(registros)} registros en tree")
+
+            # Forzar actualización de la UI
+            try:
+                self.tree.update_idletasks()
+                self.tree.update()
+                print("[FORM_TAB] UI actualizada (update_idletasks + update)")
+            except Exception as e_upd:
+                print(f"[FORM_TAB] Error en update UI: {e_upd}")
+
+            # actualizar cupo al refrescar lista
+            try:
+                self._actualizar_cupo_disponible()
+            except Exception as e_cupo:
+                print(f"[FORM_TAB] Error actualizando cupo: {e_cupo}")
+            
+            print("[FORM_TAB] Refresh completado exitosamente")
+        except Exception as e:
+            print(f"[FORM_TAB] Error en refresh: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     def _on_anio_change(self, event=None):
         """Al cambiar año, cargar las materias disponibles y limpiar selects dependientes."""
@@ -1687,7 +1713,7 @@ class FormTab(BaseTab):
                        f"Enviando certificado de {registro.get('nombre')} {registro.get('apellido')}")
 
     def _sincronizar(self):
-        """Sincronización bidireccional con Google Sheets (mismo comportamiento que en ConfigTab)."""
+        """Sincronización incremental inteligente con Google Sheets."""
         # Intentar obtener sheet_key desde settings
         sheet_key = ""
         try:
@@ -1699,14 +1725,48 @@ class FormTab(BaseTab):
             self.show_warning("Google Sheets", "Ingresá el ID de la hoja en la pestaña Configuración primero.")
             return
 
+        # Mostrar diálogo de opciones
+        from tkinter import simpledialog
+        try:
+            response = messagebox.askyesnocancel(
+                "Tipo de Sincronización",
+                "¿Usar sincronización incremental (solo cambios recientes)?\n\n" +
+                "• SÍ: Sincroniza solo últimas 24 horas (más rápido)\n" +
+                "• NO: Sincronización completa bidireccional\n" +
+                "• CANCELAR: Cancelar operación"
+            )
+            
+            if response is None:  # Cancelar
+                return
+            
+            use_incremental = response  # True para incremental, False para completo
+            
+        except Exception:
+            use_incremental = True  # Por defecto incremental
+
         # Ejecutar en background
         def worker():
-            from database.google_sheets import sincronizar_bidireccional
             try:
-                ok, msg = sincronizar_bidireccional(sheet_key)
+                if use_incremental:
+                    # Sincronización incremental (solo cambios recientes)
+                    from services.google_sheets import sync_incremental_to_sheets
+                    ok, result = sync_incremental_to_sheets(sheet_key, hours_window=24)
+                    if ok and isinstance(result, dict):
+                        msg = (f"Sincronización incremental completada:\n\n" +
+                               f"• Agregados: {result.get('added', 0)}\n" +
+                               f"• Eliminados: {result.get('deleted', 0)}\n" +
+                               f"• Sin cambios: {result.get('unchanged', 0)}")
+                    else:
+                        msg = str(result)
+                else:
+                    # Sincronización completa bidireccional
+                    from database.google_sheets import sincronizar_bidireccional
+                    ok, msg = sincronizar_bidireccional(sheet_key)
             except Exception as e:
                 ok = False
                 msg = f"Error sincronizando: {e}"
+                import traceback
+                traceback.print_exc()
 
             def finish():
                 if ok:
@@ -1724,7 +1784,8 @@ class FormTab(BaseTab):
                 finish()
 
         threading.Thread(target=worker, daemon=True).start()
-        self.show_info("Google Sheets", "Sincronizando bidireccionalmente en segundo plano...")
+        sync_type = "incremental" if use_incremental else "completa"
+        self.show_info("Google Sheets", f"Sincronizando ({sync_type}) en segundo plano...")
 
     # ================== MÉTODO NUEVO: actualizar cupo ==================
     def _actualizar_cupo_disponible(self):

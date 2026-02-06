@@ -1,0 +1,41 @@
+{
+  "app": {
+    "check_cupos": true,
+    "require_seguro_escolar": true,
+    "auto_backup": true,
+    "backup_interval_days": 7,
+    "debug": false,
+    "auto_refresh": true
+  },
+  "ui": {
+    "theme": "clam",
+    "font_size": 10
+  },
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "username": "tu_email@gmail.com",
+    "password": "tu_contraseña_de_aplicacion",
+    "use_tls": true,
+    "from_name": "Escuela",
+    "from_addr": ""
+  },
+  "google_sheets": {
+    "enabled": true,
+    "spreadsheet_id": "TU_SPREADSHEET_ID_AQUI",
+    "sheet_name": "Inscripciones",
+    "credentials_path": "credentials.json",
+    "auto_sync": true,
+    "sheet_key": "TU_SPREADSHEET_ID_AQUI",
+    "credentials_file": "RUTA_COMPLETA_A_credentials.json",
+    "has_header_row": false,
+    "sync_mode": "incremental",
+    "sync_window_hours": 24
+  },
+  "pdf": {
+    "logo_path": "",
+    "institution_name": "Escuela Superior de Música N°6003",
+    "footer_text": "Este certificado es válido con firma y sello de la institución"
+  },
+  "spreadsheet_id": "TU_SPREADSHEET_ID_AQUI"
+}

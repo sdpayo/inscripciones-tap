@@ -70,7 +70,10 @@ DEFAULT_CONFIG = {
         "spreadsheet_id": "PEGA_AQUI_EL_ID_DE_TU_HOJA1LYzWjGeJeEzBylSU1eI7Sn4gsmT-FPNTflYIsJWfGEc",  # ← Cambiar nombre
         "sheet_name": "Inscripciones",  # ← Agregar esto
         "credentials_path": "credentials.json",  # ← Cambiar nombre
-        "auto_sync": True  # ← Cambiar a True para que sincronice automáticamente
+        "auto_sync": True,  # ← Cambiar a True para que sincronice automáticamente
+        "has_header_row": False,  # ← SI GOOGLE SHEETS TIENE HEADER EN LA FILA 1, cambiar a True
+        "sync_mode": "incremental",  # ← "incremental" o "full" - incremental es más eficiente
+        "sync_window_hours": 24  # ← Ventana de tiempo para sync incremental (horas)
     },
     "pdf": {
         "logo_path": "",
