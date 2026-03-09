@@ -1207,6 +1207,10 @@
       "C": {
         "capacity": 4,
         "professor": "Salvador Rueda"
+      },
+      "B": {
+        "capacity": 4,
+        "professor": "Guillermo Rubelt"
       }
     }
   },
